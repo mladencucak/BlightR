@@ -1,0 +1,2 @@
+TminInf,ToptInf,TmaxInf,RfactInf,ShapeInf,TminInfDir,ToptInfDir,TmaxInfDir,RfactInfDir,ShapeInfDir,InterTemp,RhminInf,RhoptInf,B0,B1,TminSpor,ToptSpor,TmaxSpor,RfactSpor,ShapeSpor,KSpor,n0Spor,rSpor,hr_before_spor,hr_after_spor,hr_after_inf
+6,12,26,1,15,6,18,26,0.6,15,15.696747664227637,86,95,2.37,0.45,6,20,26,1,2,97049.81419969063,6.048921717227164e-4,1.7349235378053325,5,5,5

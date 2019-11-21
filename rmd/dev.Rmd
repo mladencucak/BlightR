@@ -1,0 +1,295 @@
+---
+title: "Infection"
+author: "Mladen Cucak"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(todor_rmd=TRUE)
+```
+```{r pkg, warning=FALSE, message=FALSE}
+source(here::here("scr", "pkg.R"))
+```
+
+
+```{r}
+BlightR <- function(weather,
+                    param = NULL,
+                    temporal_res = "daily" #resoulution of the final data to be returned, daily or hourly. if hourly returned at noon
+) {
+  #' Irish Rules
+  #'
+  #' This function calculates potatolate blight risk using Irish Rules model (Bourke, 1953)
+  #' @param weather The weather data in formated as data frame. 
+  #' @param infill_gap Maximum alowed gap for missing value interpolation
+  #' @keywords Irish Rules
+
+  #Load packages 
+  pkg <- c("tidyverse","lubridate")
+    if(any(pkg%in% installed.packages())==FALSE ){
+    print("Required packages need to be downloaded!")
+  } else {
+    lapply(pkg, require, character.only = TRUE)
+  }
+
+    
+  source(here::here("scr", "model", "fun"))#Model functions
+
+  parameters <- 
+  lapply(list.files(here::here("scr", "model", "par"),full.names = TRUE), read_csv ) %>% 
+    bind_cols()
+  
+  colnames <- c("date","doy","temp", "rhum")
+  if(all(colnames %in% colnames(fun_df))==FALSE) stop("Rename column names. ")
+  
+  if(!"hour"%in% colnames(fun_df)) fun_df$hour <- lubridate::hour(fun_df$date)
+  if(!is.POSIXt(fun_df$date)) stop("The date column is not in POSIX.. format!")
+
+  
+   
+  ################################
+  #Daytime calcualtions
+  #################################
+  #Calculate initiation/termiantion points for sporulation and infection
+  # Calculate an approximate sunrise and sunset times 
+  #https://www.timeanddate.com/sun/@2963597
+  
+  fun_df$daytime <- NA
+  
+  # Set the sunset and sunrise manually at 20/6
+  # fun_df[fun_df$hour == 20, "daytime"] <- "sunset"
+  # fun_df[fun_df$hour == 6, "daytime"] <- "sunrise"
+  
+  if(!"lon" %in% colnames(fun_df)){  stop("No Longitude reference or it is not named: 'lon'!")}
+  if(!"lat" %in% colnames(fun_df)){  stop("No Latitude reference or it is not named: 'lat'!")}
+  lat <- fun_df$lat
+  lon <- fun_df$lon 
+  
+  #Different calculation
+  tempdf <- 
+    data.frame(
+      doy = unique(fun_df$short_date),
+      lat = unique(lat),
+      lon = unique(lat)
+    ) 
+  lss <-  list()
+  
+  
+  for (i in seq_along(1:nrow(tempdf))) {
+    lss[[i]] <- SunInfo(tempdf[i,1], tempdf[i, 2], tempdf[i,3],1)
+  }
+  
+  tempdf <- 
+    lss %>% bind_rows() %>% 
+    bind_cols(tempdf, .) %>% 
+    mutate(sunset_hr = lubridate::hour(sunset),
+           sunrise_hr = lubridate::hour(sunrise)) %>% 
+    select(c("doy", "sunrise_hr", "sunset_hr"))
+  
+  tempdf$doy <-  lubridate::yday(tempdf$doy)
+  
+  
+  #Define number of days for risk estimation
+  # Risk can be calculated for from day 2, because sporulaiton is calculated for 
+  # the previous night. Same goes for the infection - it extends to the following morning
+  begin <- unique(fun_df$doy)[2] 
+  end <- unique(fun_df$doy)[length(unique(fun_df$doy))-1] 
+  
+  lss <- list()
+  #Define the start of sporulation 
+  # i = begin
+  for(i in c(begin:end)){
+    sporstart <- tempdf[ tempdf$doy == c(i-1), "sunset_hr"] - hr_before_spor
+    infstop <- tempdf[ tempdf$doy == c(i+1), "sunrise_hr"] + hr_after_inf
+    
+    daydf <- 
+      do.call("rbind", 
+              list(
+                fun_df[with(fun_df, hour >= sporstart & doy == c(i-1)),],# from the afternoon the day before
+                fun_df[with(fun_df,  doy == i),],
+                fun_df[with(fun_df, hour < infstop & doy == c(i+1)),] #ending in the morningthe day after
+              )
+      )
+    
+    ############################
+    #Sporulation
+    ############################
+    #Calculate sporulation
+    daydf$spor <-  Sporulation(daydf$temp, daydf$rhum)
+    
+    # Stop the sporulation n(hr_after_spor) hours after sunrise
+    sporstop <-  tempdf[tempdf$doy == i, "sunrise_hr"] + hr_after_spor 
+    daydf[daydf$doy == i & daydf$hour > sporstop |  daydf$doy == c(i+1), c("spor", "spor_sum")] <- 0
+    
+    #cumulative sporulation per event
+    daydf$spor_sum <- ave(coalesce(daydf$spor, 0), data.table::rleid(zoo::na.locf(daydf$spor != 0,maxgap = 3)), FUN = cumsum)
+    
+    # check if there is 10 hours for sporulation
+    criteria<- as.numeric(daydf$spor>0)
+    
+    #cumulative sum of hours that meet the criteria with restart at zero
+    criteria_sum <-  stats::ave(criteria, cumsum(criteria == 0), FUN = cumsum)
+    
+    risk <- rep(0, nrow(daydf))
+    
+    criteria_met  <-as.numeric( criteria_sum >= hours ) #accumulaition of EBH starts on 10th hour
+    idx           <-which(criteria_sum == hours)
+    
+    # If the sporulation criteria was not met
+    if(sum(criteria_met)==0){
+      final <- data.frame(
+        doy = i,
+        spor = max(daydf$spor_sum, na.rm = TRUE),
+        inf = 0,
+        inf_sol = ifelse("cumul_inf_sol" %in% colnames(daydf),
+                         0,
+                         NA )
+      )
+      lss [[i]]<-final
+      
+    }else {
+    ############################
+    #Infection
+    ############################
+
+          # Calculate the infection period 
+    # Starts after the conditions for sporulation have been met
+    # Sum of Infection and sporulation for each hour reduced by survival
+    daydf$inf <- 0
+    daydf[idx:nrow(daydf),"inf"] <- Infection(daydf[idx:nrow(daydf),"temp"], daydf[idx:nrow(daydf),"rhum"])
+    
+    #Cumulative sum of the infection after sporulation requirement has been met
+    #The initial value is total sporulation of the day
+    daydf[idx-1,"inf"] <- max(daydf$spor_sum)
+    daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- cumsum( daydf[c(idx-1):nrow(daydf),"inf"])
+    
+    #Cumulative sum with break if the criteria is not met for five hours!!!!!!!!!!!!
+    # ave(coalesce(daydf$inf, 0), data.table::rleid(zoo::na.locf(daydf$inf != 0,maxgap = 4)), FUN = cumsum)
+    
+    
+    ############################
+    #Survival
+    ############################
+    # Calculate the mortalyty of spores due to solar raditaion if there is solar radiation data
+    if (mean(is.na(daydf$sol_rad)) == 0){
+      
+      #Airborne sporangia survival
+      #The estimated probablity of spore survival is calculated using 
+      # The spore load was calculated as a product of total daily sporulation risk and the 
+      # probability of spornagia survival asa function of solar radiation
+      Survival <- function(x) {
+        pr <- 1 / (1 + exp(-(surv_B0 - surv_B1 * x)))
+        pr
+      }
+      surv_prob <- Survival(sum(daydf[daydf$doy==i,"sol_rad"]))
+      #Reduce the sporulation estimation based on the mortality due to solar radiation 
+      reduced_spore_load <-  max(daydf$spor_sum)* surv_prob
+      
+      sol_inf<-  daydf[,"inf"]
+      sol_inf[idx-1] <- reduced_spore_load
+      
+      daydf[,"cumul_inf_sol"] <- cumsum( sol_inf) #cumulative sum of inf reduced by sol survival
+      
+    }
+    
+    ############################
+    #RH and tem survival !!!!!!!! SORT OUT
+    ############################
+    
+    # daydf[idx:nrow(daydf),"sur"] <- Survival(daydf[idx:nrow(daydf),"temp"], daydf[idx:nrow(daydf),"rhum"])
+    # daydf[idx:nrow(daydf),"cumul_sur"] <- cumsum( daydf[idx:nrow(daydf),"sur"])
+    
+    
+    # ggplot(daydf)+
+    #   geom_point(aes(date, spor_sum, color = "blue"))+
+    #   geom_line(aes(date, spor_sum, color = "blue"))+
+    #   geom_point(aes(date, cumul_inf, color = "red"))+
+    #   
+    #   geom_line(aes(date, cumul_inf, color = "red"))+
+    #   geom_line(aes(date, cumul_sur, color = "green"))+
+    #   labs(title = "Daily model outputs",
+    #        y = "Risk",
+    #        x = "Time")+
+    #   theme_bw()
+    
+    final <- data.frame(
+      doy = i,
+      spor = max(daydf$spor_sum, na.rm = TRUE),
+      inf = max(daydf$cumul_inf, na.rm = TRUE),
+      inf_sol = ifelse("cumul_inf_sol" %in% colnames(daydf),max(daydf$cumul_inf_sol, na.rm = TRUE), NA )
+    )
+    
+    lss [[i]]<-final
+    }
+  }
+  fin <- 
+    left_join( tempdf, bind_rows(lss),by = "doy") %>% 
+    select(-c("sunrise_hr", "sunset_hr"))
+  
+  
+  DailyAt <-  function(x, time) { 
+    xx <- c(sapply(x, function(x) c(rep(NA,23),x)))
+    x <- c(xx[time:length(xx)], xx[2:time])
+    return(x)
+  }
+  
+  
+  
+  
+  if(temporal_res == "daily") {final <- fin}
+  if(temporal_res == "hourly"){
+    fin_hourly <-  
+      data.frame(
+        spor =   DailyAt(fin$spor, 18),
+        inf = DailyAt(fin$inf, 12),
+        inf_sol = DailyAt(fin$inf_sol, 6)
+      )
+    final <- fin_hourly
+  }
+  return(final)
+  
+
+  
+  }
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+

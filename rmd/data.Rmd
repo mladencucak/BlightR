@@ -1,0 +1,475 @@
+---
+title: "Data"
+author: "Mladen Cucak"
+date: 
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# options(todor_rmd=TRUE)
+```
+
+## Packages
+```{r pkg, warning=FALSE, message=FALSE}
+source(here::here("scr", "lib", "pkg.R"))
+```
+
+
+## Weather
+The weather data for Republic of Ireland was obtained form MEt Eirean, the Irish meteorological service. 
+All Sky Insolation Incident on a Horizontal Surface (MJ/m^2/day)
+Load the weather data and do imputations. 
+
+```{r}
+load(file=here::here("dat", "full_IE_data_2001_2018.RData"))
+
+# Check if there are dupicated rows
+# weather[duplicated(weather),  ]
+
+# rh has to be within 0 and 100:
+weather[which(weather$rh < 0 | weather$rh > 100), ]
+weather[weather$rhum %in%na.omit(unique(weather$rhum)[unique(weather$rhum) <0]),]["rhum"] <- NA
+weather[which(weather$rh < 0 | weather$rh > 100), ]
+
+weather[which(weather$temp > 35), ]
+weather[which(weather$temp < -20), ]["temp"]
+weather[which(weather$temp < -20), ]["temp"] <- NA
+
+# summary(weather[, c("rhum", "temp", "sol_rad", "sol_nasa")])
+```
+
+
+```{r load_wth, eval=FALSE}
+
+infil_gap <- 12 #Maximum length of the infill gap
+weather$temp <- round(na.spline(weather$temp, na.rm = FALSE, maxgap = infil_gap),1)
+weather$dewpt <- round(na.spline(weather$dewpt, na.rm = FALSE, maxgap = infil_gap),1)
+weather$wetb <- round(na.spline(weather$wetb, na.rm = FALSE, maxgap = infil_gap),1)
+weather$q10cm_soil_temp <- round(na.spline(weather$q10cm_soil_temp, na.rm = FALSE, maxgap = infil_gap),1)
+weather$rhum <- round(na.spline(weather$rhum, na.rm = FALSE, maxgap = infil_gap),0)
+weather$rhum  <- sapply(weather$rhum, function(x) ifelse(x > 100, x <- 100, x))
+rm(infil_gap)
+
+#Remove years before 2003
+weather <- weather[weather$year>=2003,]
+
+save(weather, file= here::here("dat", "weather_infilled.Rdata"))
+```
+
+## Data cleaning step
+
+Skipped because there is a potential to data even if threre is a big proportion missing.
+```{r}
+# lengthbefore <- nrow(weather)
+# 
+# # Acceptable level of missing values for main variables of interest
+# # Select any station to get the vector of time lenght for model runs (incl. leap year) 
+# x <- weather[with( weather, year == 2001& stna== "Aldergrove"& doy %in% c(118:276)), ]
+# na_prop <- 0.2
+# c(x$temp,x$rhum, x$rain) %>% length() *na_prop ; rm(x)
+# # 343.44 na for three variables should be ok. Probably a few mising days
+# # Set maximum alowed missing for a single variable to 10%
+# na_prop_single <- 0.2
+# 
+# 
+# # Exclude years with too many missing values during period of interest
+# wth_ls <- split(weather,  list(weather$stna, weather$year) )
+# 
+# #First check if there are any duplicate rows
+# wth_ls <- lapply(wth_ls, function(x) distinct(x))
+# 
+# 
+# acceptable <-sapply(wth_ls, function(x) {
+#   x <- x[x$doy %in% c(118:276),] 
+#   mean(is.na(c(x$temp,x$rhum))) <=na_prop &
+#     mean(is.na(x$temp)) <= na_prop_single &
+#     mean(is.na(x$rhum)) <= na_prop_single 
+# }) #Check if there are any duplicate rows
+# wth_ls <- lapply(wth_ls, function(x) distinct(x))
+# beepr::beep("fanfare")
+# 
+# wth_ls <- wth_ls[as.vector(acceptable, mode = "logical")]; rm(acceptable)
+# beepr::beep("fanfare")
+# 
+# weather <- bind_rows(wth_ls); rm(wth_ls)
+# lengtafter <- nrow(weather)
+# 
+# lengthbefore - lengtafter
+
+```
+
+## Solar radiation data
+
+Solar radiation data for Northern Irish 
+
+```{r sol_dwnld, eval=FALSE}
+
+library("nasapower")
+GetNASADaySolPwr <- function(dat){
+  # dat <-  wth_ls[[x]]
+  out_lat <- dat[1, "lat"]
+  out_lon <- dat[1, "long"]
+  out_dates <- c(dat[1, "short_date"],dat[nrow(dat), "short_date"])
+  dff <-
+    nasapower::get_power(community = "AG",
+                         lonlat = c(out_lon, out_lat),
+                         pars = c("ALLSKY_SFC_SW_DWN"),
+                         dates = out_dates,
+                         temporal_average = "DAILY") %>%
+    select(c( "YYYYMMDD", "ALLSKY_SFC_SW_DWN"))
+  dff[,"stna"] <-  unique(dat[,"stna"])[!is.na(unique(dat[,"stna"]))]
+  colnames(dff) <-  c("short_date", "sol_nasa", "stna")
+  return(dff)
+}
+
+
+sol_ls <- list()
+for(x in seq_along(wth_ls)){
+  df <- wth_ls[[x]]
+  #sort problems with the dates
+  df <- arrange(df, date_time)
+  df <- df[!duplicated(df$date_time), ]
+
+  # new df with full sequence of dates
+  dff <- data.frame(date_time = seq(df[1, "date_time"],df[nrow(df), "date_time"], by = 'hour'))
+  df <- left_join(dff, df, by = "date_time")
+  sol_df <-  GetNASADaySolPwr(df)
+  sol_ls[[x]] <-  sol_df
+  print(paste("diff: ", nrow(dff)-nrow(df), "at ", x, " for ", unique(df$stna) ))
+}
+sol_df <- bind_rows(sol_ls)
+
+write_csv(sol_df,here::here("dat", "sol_ls.csv") )
+rm(wth_ls)
+```
+
+
+### Check estimated solar data
+
+
+```{r}
+load( file= here::here("dat", "weather_infilled.Rdata"))
+
+sol_df <-  read_csv(here::here("dat", "sol_ls.csv"))
+str(sol_df)
+sol_df$hour <-  12
+mean(is.na(sol_df$sol_nasa))
+
+#Some of missing values are recorede as -99 and we shall remove them 
+sol_df <-  sol_df[sol_df$sol_nasa >= 0, ]
+
+#Join the data. The daily values will be added to 12th hour
+#This does not make difference because the model uses total amount of daily radiation
+weather <- 
+weather %>% 
+  left_join(sol_df, by = c("stna", "short_date", "hour")) 
+
+
+ 
+ 
+ # split(weather, )
+ # weather <- 
+ # weather %>% 
+ #   group_by(short_date) %>% 
+ #   mutate(sol_rad = ifelse(sum(sol_rad, na.rm = TRUE) == 0, NA, sol_rad ))
+
+ 
+#The data for Mullingar station looks awfull so I will just remove it. 
+weather[weather$stna == "Mullingar", "sol_rad"] <- NA
+
+
+test_sol <-
+  weather[!is.na(weather$sol_rad), ] %>% 
+  filter(country == "IE") %>%
+  group_by(stna, short_date) %>% 
+  summarise(sol_rad = sum(sol_rad),
+            sol_nasa = sum(sol_nasa,na.rm = T),
+            sol_rad_i = unique(sol_rad_i)[!is.na(unique(sol_rad_i))])
+
+#Some daily sums of solar radiation are equal to 0 which is incorrect
+ test_sol <- test_sol[test_sol$sol_rad > 0, ] 
+
+ 
+head(test_sol)
+
+#Some daily sums of solar radiation are equal to 0 which is incorrect
+ test_sol <- test_sol[test_sol$sol_rad > 0, ] 
+
+ 
+# test_sol[test_sol$sol_nasa<0.1]
+test_sol[test_sol$sol_rad<1 & test_sol$sol_nasa>3  & test_sol$stna == "Oak Park",] 
+
+test_sol[test_sol$sol_rad_i==0, "stna"] %>% unique() %>% unlist()
+```
+
+
+```{r}
+cor(test_sol$sol_rad,  test_sol$sol_nasa)
+
+```
+
+Check the correlations for each station. 
+```{r plotcors_per_station, warning= FALSE}
+test_sol %>% 
+  mutate(month = month(short_date)) %>% 
+  filter(month %in% c(5:9)) %>% 
+  ggplot()+
+  geom_point(aes(sol_rad,sol_nasa, color = factor(sol_rad_i)))+
+  geom_smooth(aes(sol_rad,sol_nasa), method = "lm")+
+  geom_abline(intercept = 0, slope = 1) +
+  coord_fixed(ratio = 1 / 1)+
+  scale_y_continuous(limits = c(1,30))+
+  facet_wrap(~stna)+
+  labs(color = "Source",
+       y = "Measured solar radiation (MJ/m^2/day)",
+       x = "Estimated" )+
+  egg::theme_article()+
+  ggsave(here::here("out", "fig", "Correlations of solar data.png"),
+         width = 18, height = 18, units = "cm")
+
+```
+They all seem to be pretty good. Valentia is the only one that is a bit off.  
+There is an indication of some bias between measured and estimated data. 
+
+```{r plotcors_per_station, warning= FALSE}
+test_sol %>% 
+  mutate(month = month(short_date)) %>% 
+  filter(month %in% c(5:9)) %>% 
+  mutate(sol_rad_i = ifelse(sol_rad_i == 0, "Measured", "Estimated")) %>% 
+  ggplot()+
+  geom_point(aes(sol_nasa,sol_rad))+
+  geom_smooth(aes(sol_nasa,sol_rad), method = "lm")+
+  geom_abline(intercept = 0, slope = 1) +
+  coord_fixed(ratio = 1 / 1)+
+  scale_y_continuous(limits = c(1,30))+
+  facet_wrap(~sol_rad_i)+
+  labs(color = "Source",
+       y = "Estimated",
+       x = "Measured solar radiation (MJ/m^2/day)" )+
+  egg::theme_article()
+  ggsave(here::here("out", "fig", "Correlations of solar data Observed vs estimated.png"),
+         width = 18, height = 18, units = "cm")
+
+```
+  
+Some bias is evident with the measured data. 
+
+```{r}
+
+tmp <- test_sol [, c("sol_rad", "sol_nasa")]
+
+tmp.ccc <- epiR::epi.ccc(test_sol$sol_rad,  test_sol$sol_nasa, 
+                         ci = "z-transform", 
+                         conf.level = 0.95, 
+                         rep.measure = FALSE)
+
+tmp.lab <- data.frame(lab = paste("CCC: ", 
+                                  round(tmp.ccc$rho.c[,1], digits = 3), " (95% CI ", 
+                                  round(tmp.ccc$rho.c[,2], digits = 3), " - ",
+                                  round(tmp.ccc$rho.c[,3], digits = 3), ")", sep = ""))
+
+z <- lm(test_sol$sol_rad ~  test_sol$sol_nasa)
+alpha <- summary(z)$coefficients[1,1]
+beta <-  summary(z)$coefficients[2,1]
+tmp.lm <- data.frame(alpha, beta)
+
+## Concordance correlation plot:
+
+ g <- 
+ggplot(tmp) + 
+  geom_point(aes(x = tmp$sol_rad, y = tmp$sol_nasa
+                 # fill = factor(month), color = factor(month)
+  ), 
+  size = 0.01) +
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  geom_abline(data = tmp.lm, aes(intercept = alpha, slope = beta), 
+              linetype = "solid", 
+              size = 1,
+              color = "red") +
+  labs(
+       # subtitle=expression(atop("Measurement of precision and accuracy /n of prediction.",paste("ss", tmp.lab$lab))),
+       caption="Reference: Lin (1989)",
+       x=expression("Observed solar radiation (MJ /"~m^2~"/ day)"),
+       y=expression("Estimated solar radiation (MJ /"~m^2~"/ day)"))+
+   geom_text(data = tmp.lab, x = 11, y = 32, label = tmp.lab$lab) + 
+   coord_fixed(ratio = 1 / 1)+
+  theme(
+    # legend.position="right",
+        text = element_text(size=5))+
+  theme_bw()
+  
+ggExtra:: ggMarginal(g, type = "histogram", fill="transparent")
+
+g+
+  egg::theme_article()+
+  ggsave(here::here("out", "fig", "CCC of solar data.png"),
+         width = 11, height = 11, units = "cm")
+```
+
+Add the estimated solar radiation data to observed and change the indicator to 2, which will stand for nasa data.
+```{r}
+wth_ls <- 
+split(weather, unite(weather, col = c(stna, year, short_date)) )
+
+wth_ls <- 
+lapply(wth_ls, function(x)
+  if (all(is.na(x$sol_rad))) {
+    x$sol_rad_i <- 2;
+    x$sol_rad <- 0
+    x$sol_rad[12] <- sum(x$sol_nasa)
+  })
+    
+wth_ls <- bind_rows(wth_ls)
+
+head(weather,20)
+```
+
+Save the data. 
+
+```{r}
+save(weather, file= here::here("dat", "weather_infilled&sol_estim.Rdata"))
+```
+
+## Map stations
+
+```{r}
+
+library("maps")
+ireland = map_data("world", region = "ireland")
+ni = map_data("world", region = "uk")
+ni <- ni[ni$subregion == "Northern Ireland",]
+ireland <- bind_rows(ireland,ni)
+df_loc <- 
+  weather %>% group_by(stna) %>% select(stna,lat,long) %>% summarise_all(unique) 
+map <- 
+  ggplot() + 
+  geom_polygon(data = ireland, aes(x=long, y = lat, group = group), fill = "darkolivegreen3")  +
+  coord_fixed(1.5)+
+  geom_point(data = df_loc, aes(x = long, y = lat, fill = "red", alpha = 0.8), size = 1, shape = 2) +
+  guides(fill=FALSE, alpha=FALSE, size=FALSE) +
+  ggrepel::geom_text_repel(aes(x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna),size = 2)+ 
+  # annotate("text",x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna, size = 2)+
+  ggthemes::theme_tufte()
+ggsave(map,file = here::here("tmp", "stationmap.png"))
+map
+
+# png(map, filename = "./temp/EB_analysis/map.png")
+library(leaflet)
+
+leaflet(df_loc) %>%
+  setView(mean(df_loc$long),mean(df_loc$lat),7) %>%
+  addTiles(group = "OSM (default)") %>%
+  setView(-8,53.5,6)%>% 
+  addMarkers(lng = df_loc$long, lat = df_loc$lat, 
+             label = ~as.character(df_loc$stna) 
+             # icon=greenLeafIcon
+             # radius = 2
+  )
+
+```
+
+
+  
+  Save geo references for the weather stations in a separate file. 
+
+```{r}
+save(df_loc, file = here::here("dat", "locations.Rdata"))
+```
+
+```{r}
+# Total number of stations 
+unique(weather$stna) %>% length()
+
+
+#Data set descriptions
+wth_ls <- split(weather, weather$stna)
+
+# Total number of year/stations 
+lapply(wth_ls, function(x) length(unique(x$year))) %>% 
+  bind_cols() %>% t() %>% sum()
+```
+
+
+```{r wth_ridgeplot_availablity, warning= FALSE, out.width='100%', out.height=13  }
+#Weaher data avialability per year
+lapply(wth_ls, function(x) {
+  years <-  unique(x$year)
+  stna <- rep(unique(x$stna), length(years))
+  country <-  rep(unique(x$country), length((years)))
+  data.frame(stna = stna,years = years, country = country)
+}) %>% 
+  bind_rows() %>%
+  group_by(country) %>% 
+  ggplot() + 
+  ggridges::geom_ridgeline(aes(x=years,y=as.factor(stna),fill = country,height = 0.4),stat="identity")+
+  scale_y_discrete(name = "Year")+
+  ggtitle("Weather data availability per year")+
+  ggridges:: theme_ridges(center = TRUE, font_size = 10)
+
+```
+
+
+```{r wth_ridgeplot_availablity_IE, warning= FALSE, out.width='100%'}
+
+#Weaher data avialability per year
+lapply(wth_ls, function(x) {
+  years <-  unique(x$year)
+  stna <- rep(unique(x$stna), length(years))
+  country <-  rep(unique(x$country), length((years)))
+  data.frame(stna = stna,years = years, country = country)
+}) %>% 
+  bind_rows() %>%
+  filter(country == "IE") %>% 
+  ggplot() + 
+  ggridges::geom_ridgeline(aes(x=years,y=as.factor(stna),fill = country,height = 0.4),stat="identity")+
+  scale_y_discrete(name = "Year")+
+  ggtitle("Weather data availability per year")+
+  ggridges:: theme_ridges(center = TRUE, font_size = 10)
+rm(wth_ls)
+
+```
+
+
+```{r wth_ridgeplot_quality_NI, warning= FALSE, out.width='100%' }
+low_na <- 0.03
+na_prop <- 0.2
+weather %>% 
+  group_by(stna, year)  %>% 
+  filter(month %in% c(4:10)) %>% 
+  filter(country == "NI") %>% 
+  dplyr::summarize(sum_NA = round(mean(is.na(c(temp,rhum, rain))),2)) %>% 
+  # filter(stna== "St Angelo")
+  mutate(perc_missing =  ifelse(sum_NA < low_na, paste("<", low_na), paste( low_na, "-", na_prop))) %>% 
+  mutate(perc_missing = factor(perc_missing)) %>% 
+  ggplot(., aes(year, stna))+
+  geom_tile(aes(fill = perc_missing), alpha=0.5 )+
+  scale_x_continuous(breaks = (seq(2003, 2018, 2)))+
+  theme_minimal()+
+  labs(y = "")+
+  ggtitle("Missing values for: rain, rh, temp.")
+
+rm(na_prop, na_prop_single)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
