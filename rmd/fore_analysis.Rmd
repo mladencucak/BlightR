@@ -95,7 +95,7 @@ The corresponding risk to desired threshold is found using linear interpolation 
 
 load( file = here::here("out", "default", "model_eval.Rdata"))
 load( file = here::here("out", "calib", "warning_thresholds_calib.Rdata"))
-warn_t_df %>% round(2) %>% kable()
+warn_t_df %>% round(3) %>% kable()
 ```
 
   

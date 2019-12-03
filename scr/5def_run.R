@@ -54,19 +54,19 @@ clusterExport(cl, c("BlightR","IrishRulesModel", "lss", "RunModel", "ExtractCol"
 
 
 out_ls <- pblapply(lss, function(x)  RunModel(x, run_type = "model",ir_run = TRUE,ir_def_run = TRUE) , cl = cl)
-out_trt <-  pblapply(wth_ls, function(x)  RunModel(x, run_type = "wth",ir_run = TRUE,ir_def_run = TRUE), cl = cl)
+trt_ls <-  pblapply(wth_ls, function(x)  RunModel(x, run_type = "wth",ir_run = TRUE,ir_def_run = TRUE), cl = cl)
 
 
 # out_ls <- list()
-# out_trt <- list()
+# trt_ls <- list()
 # for(i in seq_along(lss)){
 #   out_ls[[i]] <- BlightR(lss[[i]])
 #   out_ls[[i]]$ir <- IrishRulesModel(lss[[i]], temporal_res = "daily")
 #   print(i)
 # }
 # for(i in seq_along(wth_ls)){
-#   out_trt[[i]] <- BlightR(wth_ls[[i]])
-#   out_trt[[i]]$ir <- IrishRulesModel(wth_ls[[i]], temporal_res = "daily", replace_na = TRUE)
+#   trt_ls[[i]] <- BlightR(wth_ls[[i]])
+#   trt_ls[[i]]$ir <- IrishRulesModel(wth_ls[[i]], temporal_res = "daily", replace_na = TRUE)
 #   print(i)
 # }
 
@@ -76,18 +76,24 @@ out_trt <-  pblapply(wth_ls, function(x)  RunModel(x, run_type = "wth",ir_run = 
 
 
 
-default_res_ls <- list(out_ls, out_trt)
+default_res_ls <- list(out_ls, trt_ls)
+names(default_res_ls) <- c("sens", ("spec"))
 
 save(default_res_ls, file = here::here("out","default", "model_outputs.Rdata"))
 
-rm( out_ls, out_trt)
+rm( out_ls, trt_ls)
+
+################################
+# 
+################################
+
 
 ################################
 #Calculate the cutoff points - decision thresholds 
 ################################
 
 load( file = here::here("out", "default", "model_outputs.Rdata"))
-out_trt_df <- do.call("rbind", default_res_ls[2][[1]])
+trt_df <- do.call("rbind", default_res_ls[2][[1]])
 
 Cutoffs <- function(x){
   quantile(drop_na(x[x>0,])%>% unlist(), probs =seq(0, 1, 0.04)) 
@@ -95,12 +101,12 @@ Cutoffs <- function(x){
 
 warn_t_df <- 
   data.frame(warn_thresh = 1:26,
-             risk_si =  Cutoffs(out_trt_df[ , "risk_si"]),
-             risk_mi = Cutoffs(out_trt_df[ , "risk_mi"]),
-             risk = Cutoffs(out_trt_df[ , "risk"]),
-             cumul_risk_si = Cutoffs(out_trt_df[ , "cumul_risk_si"]),
-             cumul_risk_mi = Cutoffs(out_trt_df[ , "cumul_risk_mi"]),
-             cumul_risk = Cutoffs(out_trt_df[ , "cumul_risk"]),
+             risk_si =  Cutoffs(trt_df[ , "risk_si"]),
+             risk_mi = Cutoffs(trt_df[ , "risk_mi"]),
+             risk = Cutoffs(trt_df[ , "risk"]),
+             cumul_risk_si = Cutoffs(trt_df[ , "cumul_risk_si"]),
+             cumul_risk_mi = Cutoffs(trt_df[ , "cumul_risk_mi"]),
+             cumul_risk = Cutoffs(trt_df[ , "cumul_risk"]),
              ir_risk = seq.int(1,26,1),
              defir_risk = seq.int(1,26,1)
   )
@@ -109,19 +115,27 @@ warning_thresholds <- warn_t_df$warn_thresh
 
 save(warn_t_df, file = here::here("out", "default", "warning_thresholds.Rdata"))
 
-rm(Cutoffs,out_trt_df)
+rm(Cutoffs,trt_df)
 
 ################################
 #Calculate the number of treatments
 ################################
 # TODO possibly reduce to 6 days because the average between 7/5 days could be there
 duration_of_season <- nrow(unique(default_res_ls[2][[1]][[1]]["doy"]))
+min_prot_dur <-  7
 max_trt <- 
-  round(duration_of_season  / min_prot_dur,1)
-min_prot_dur  = c(5:7)
+  round(duration_of_season  / min_prot_dur,3)
 
-data.frame(min_prot_dur  = min_prot_dur,
-           max_trt = max_trt)
+
+min_prot_dur_e  = c(7:14)
+max_trt_e <-
+  round(duration_of_season  / min_prot_dur_e,3)
+
+
+red_df <- 
+data.frame(min_prot_dur_e  = min_prot_dur_e,
+           max_trt_e = max_trt_e,
+           reduction = round(max_trt_e/ max_trt,3))
 rm(duration_of_season)
 
 ################################
@@ -143,7 +157,7 @@ clusterExport(cl, c("default_res_ls", "TPPFun", "ControlFreqFun",
                     "max_trt"))
 clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 
-
+#Calculate the number of predicted outbreaks for each waof the cutoff points
 tpp_ev_ls <-
   pbapply::pblapply(warning_thresholds, function(x) {
     TPPFun(x, default_res_ls[1][[1]])
@@ -196,7 +210,7 @@ lapply(trt_ev_ls, function(x){
   coord_flip()+
   labs(title = "Number of treatments with the risk model at 90% accuracy.")
 
-
+#for each model, find a 90% risk trhreshold
 
 
 models <- 
@@ -232,20 +246,39 @@ tpp_ev_long <-
 eval_long <- 
   left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model" ))
 
-p1 <- 
-  left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model" )) %>% 
-  ggplot()+
-  geom_line(aes(spec, sens, color = model))+
+ p1 <- 
+left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model")) %>%
+  ggplot(aes(spec, sens, color = model)) +
+  geom_hline(
+    yintercept = seq(0 , 1, 0.1),
+    size = 0.1,
+    color = "gray",
+    linetype = "dotted"
+  )+
+  geom_hline(yintercept = c(.9,.8), 
+             linetype = "dashed",
+             size = .2) +
+  geom_vline(
+    xintercept = red_df$reduction,
+    size = 0.1,
+    color = "gray",
+    linetype = "solid",
+    alpha= .5
+  )+
+  geom_point(size = .5) +
+  geom_line() +
   scale_y_continuous(limits = c(0, 1),
                      expand = c(0, 0),
-                     breaks = c(0, 0.1, 0.25, 0.5, 0.75, 0.9, 1),
-                     name = "Sensitivity") +
-  scale_x_continuous(limits = c(0, 1),
-                     expand = c(0, 0),
-                     breaks = c(0, 0.1, 0.25, 0.5, 0.75, 0.9, 1),
-                     name = "Proportion of treatment reduction from 5-day calendar")+
-  geom_hline(yintercept = 0.9, linetype = "dashed")+
-  theme_bw() +
+                     breaks = seq(0, 1, 0.1),
+                     name = "Proportion of predicted outbreaks") +
+  scale_x_continuous(
+    limits = c(0, 1),
+    expand = c(0, 0),
+    breaks = red_df$reduction,
+    labels = red_df$min_prot_dur_e,
+    name = "Proportion of treatment reduction from the 7-day application schedule"
+  ) +
+theme_bw() +
   theme(
     text = element_text(size = 10.5),
     panel.grid.major = element_blank(),
@@ -253,21 +286,41 @@ p1 <-
   )
 
 
-p3 <- 
+ p3 <- 
   ggplot(eval_long,aes(spec, sens, color = model, label = warning_thres))+
+  geom_hline(
+    yintercept = seq(0 , 1, 0.1),
+    size = 0.1,
+    color = "gray",
+    linetype = "dotted"
+  )+
+  geom_hline(yintercept = c(.9,.8), 
+             linetype = "dashed",
+             size = .2) +
+  geom_vline(
+    xintercept = red_df$reduction,
+    size = 0.1,
+    color = "gray",
+    linetype = "solid",
+    alpha= .5
+  )+
+  
   geom_point( colour = "black",size = 0.5)+
   
   geom_line(aes(spec, sens, color = model))+
-  scale_y_continuous(limits = c(0, 1),
-                     expand = c(0, 0),
-                     breaks = c(0, 0.1, 0.25, 0.5, 0.75, 0.9, 1),
-                     name = "Sensitivity") +
-  scale_x_continuous(limits = c(0, 1),
-                     expand = c(0, 0),
-                     breaks = c(0, 0.1, 0.25, 0.5, 0.75, 0.9, 1),
-                     name = "Proportion of treatment reduction from 5-day calendar")+
-  geom_hline(yintercept = 0.9, linetype = "dashed")+
-  ggrepel::geom_text_repel(size = 4)+
+    scale_y_continuous(limits = c(0, 1),
+                       expand = c(0, 0),
+                       breaks = seq(0, 1, 0.1),
+                       name = "Proportion of predicted outbreaks") +
+    scale_x_continuous(
+      limits = c(0, 1),
+      expand = c(0, 0),
+      breaks = red_df$reduction,
+      labels = red_df$min_prot_dur_e,
+      name = "Proportion of treatment reduction from the 7-day application schedule"
+    ) +
+    
+  ggrepel::geom_text_repel(size = 2)+
   theme_bw() +
   theme(
     text = element_text(size = 10.5),
@@ -281,7 +334,29 @@ p3 <-
 
 p2 <- 
   p1+
-  coord_cartesian(ylim=c(0.8,1), xlim = c(0.7,1))
+  coord_cartesian(ylim=c(0.8,1), xlim = c(0.6,1))
 ggsave(filename = here::here("out", "default", "model_eval.png"),  plot=p1)
 ggsave(filename = here::here("out", "default", "model_eval_crop.png"),  plot=p2)
 ggsave(filename = here::here("out", "default", "model_eval_facets.png"),  plot=p3)
+
+#################################################################
+#Calculate the partial ROC
+#################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

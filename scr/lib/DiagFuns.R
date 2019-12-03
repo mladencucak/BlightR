@@ -85,10 +85,12 @@ ControlFreqFun <-
 ################################
 #Caclulate TPP
 #Function that calculates the true positive proportion of the data.
+# data <- default_res_ls[1][[1]]
 TPPFun <- function(cutoff, data) {
   lapply(data, function(fun_df) {
     
-    # default_res_lss[1][[1]][[1]] -> fun_df
+    # default_res_ls[1][[1]][[1]] -> fun_df
+    # fun_df <- out_ls[["2003-06-17//Desiree//Ballinran, Kilkeel, Down, UK//1.97"]]
     models <-  colnames(fun_df[, grepl("risk" , names(fun_df))])
     
     for (i in models) {
@@ -99,8 +101,9 @@ TPPFun <- function(cutoff, data) {
         })
       rm(i)
     }
+    
     fun_dff <- summarise_all(fun_df[, models], sum)
-    fun_dff[1,] <- ifelse(fun_dff[1,] > 1, 1, 0) #if the threhold is reached change to one
+    fun_dff[1,] <- ifelse(fun_dff[1,] >= 1, 1, 0) #if the threshold is reached change to one
     fun_dff$warning_thres <-  cutoff
     return(fun_dff)
   })  %>%

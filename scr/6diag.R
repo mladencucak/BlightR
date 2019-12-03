@@ -3,7 +3,7 @@ source(here::here("scr","lib",  "pkg.R"))
 load( file = here::here("out", "default", "model_outputs.Rdata"))
 
 #Get min and max model outputs and calculate the sensitivity for each threshold 
-out_trt <- default_res_ls[2][[1]]
+trt_ls <- default_res_ls[2][[1]]
 
 #Calculate the reduction in number of treatmetns
   out_trt_df <- do.call("rbind", default_res_ls[2][[1]])
@@ -106,8 +106,7 @@ begin <- Sys.time()
 cores <- ifelse(detectCores() > 1, detectCores() - 1, 1)
 cl <- makeCluster(cores)
 clusterExport(cl, c("default_res_ls", "TPPFun", "ControlFreqFun", 
-                    "warn_t_df", "warning_thresholds",
-                    "max_trt"))
+                    "warn_t_df", "warning_thresholds",  "max_trt"))
 
 clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 
@@ -124,7 +123,7 @@ trt_ev_ls <-
                      warn_t_df,
                      data,
                      no_cal = max_trt,
-                     min_prot_dur = 5)
+                     min_prot_dur = 7)
     }) %>% bind_rows()
   },
   cl = cl) 
@@ -170,7 +169,7 @@ tpp_ev_long <-
 eval_long <- 
   left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model" ))
 
- p1 <- 
+  p1 <- 
 left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model" )) %>% 
   ggplot()+
   geom_line(aes(spec, sens, color = model))+
@@ -231,7 +230,7 @@ p_ls <- list()
 for(i in seq(models)){
   y <- models[i]
   diag[[i]] <- 
-    cbind(tpp_ev[,y], trt_ev[,paste0(y,"_trt")], tpp_ev[, "warning_thres"])
+    cbind(tpp_ev_ls[,y], trt_ev[,paste0(y,"_trt")], tpp_ev_ls[, "warning_thres"])
   
   p  <- 
    ggplot(diag[[i]])+

@@ -223,7 +223,7 @@ Sporulation <-
  
 ```
 
-Visualisation of the overal effect of this function. 
+Visualisation of the overall effect of this function. 
 
 ```{r}
 

@@ -107,10 +107,7 @@ BlightR <- function(fun_df,
   #Define the start of sporulation 
   # i = 141
   for(i in c(begin:end)){
-    sporstart <- timedf[ timedf$doy == c(i-1), "sunset_hr"] - parameters[ ,"hr_before_spor"] %>% as.numeric()
-    infstop <- timedf[ timedf$doy == c(i+1), "sunrise_hr"] + parameters[ ,"hr_after_inf"] %>% as.numeric()
-    
-    daydf <- 
++    daydf <- 
       do.call("rbind", 
               list(
                 fun_df[with(fun_df, hour >= sporstart & doy == c(i-1)),],# from the afternoon the day before

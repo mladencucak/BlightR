@@ -4,11 +4,12 @@
 ###################################################################################
 # Check results
 ###################################################################################
+out_ls <- default_res_ls[1][[1]]
 
 
+# dff <- 
+# out_ls[[1]] 
 
-dff <- 
-out_ls[[1]] 
 # color of the back ground baed on the mont//year
 PlotFun <- function(dff, plot_all = "all"){
   if(plot_all == "red"){dff <-  select(dff,-c(spor, inf, surv_prob))}
@@ -46,16 +47,65 @@ dev.off()
 "2004_6_Kerrs Pink_1−5 isolated plants_Killowen_1.97"
 
 #Calculate the max per model per event
+for(i in seq_along(out_ls)){
+  out_ls[[i]]$id <- names(out_ls)[i]
+}
+
+
 max_out <- 
 out_ls %>% 
   bind_rows() %>% 
-unite(., "id", year,month, variety, comments, stna, dist) %>% 
+# unite(., "id", year,month, variety, comments, stna, dist) %>% 
   select(-c(spor, inf, surv_prob,doy, short_date, lat, long, dbo)) %>% 
   group_by(id) %>% 
   summarise_all(max)
 
+
 apply(max_out, 2, any( . == 0))
-max_out[max_out$defir_risk %in% 0, ] %>% view()
+
+max_out[max_out$risk %in% 0, ]
+
+fun_df <-  out_ls[["2003-07-03//Dundrod//Clough/ Ballymeana, Antrim, UK//25.36"]] 
+
+pbapply::pblapply(warning_thresholds, function(x) {
+  TPPFun(x, out_ls[["2003-07-03//Dundrod//Clough/ Ballymeana, Antrim, UK//25.36"]] )
+}) %>% bind_rows()
+
+
+l <- 
+lapply(data, function(fun_df) {
+  
+  # default_res_ls[1][[1]][[1]] -> fun_df
+  models <-  colnames(fun_df[, grepl("risk" , names(fun_df))])
+  
+  for (i in models) {
+    #if more or equal to the given warning threshold assign 1
+    fun_df[, i] <-
+      sapply(fun_df[, i],  function(x) {
+        ifelse(x >= warn_t_df[cutoff, i], 1, 0)
+      })
+    rm(i)
+  }
+  fun_dff <- summarise_all(fun_df[, models], sum)
+  fun_dff[1,] <- ifelse(fun_dff[1,] > 1, 1, 0) #if the threshold is reached change to one
+  fun_dff$warning_thres <-  cutoff
+  return(fun_dff)
+})  
+
+cond <- sapply(l, function(x) x$risk == 0)
+l[cond]
+
+  # bind_rows() %>% 
+  add_column(., id  = names(out_ls), .before = "risk_si") %>% 
+  filter(risk == 0) %>% 
+  select("id") %>% 
+  unlist()
+
+
+out_ls[ids] %>% 
+  bind_rows() %>% 
+  view()
+
 
 
 
