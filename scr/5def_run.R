@@ -2,6 +2,7 @@
 ###################################################################################
 # Source data
 ###################################################################################
+if("here"%in% installed.packages()==FALSE){install.packages("here");require("here")}
 source(here::here("scr","lib",  "pkg.R"))
 source(here::here("scr", "lib", "funs.R"))
 
