@@ -120,7 +120,8 @@ rm(Cutoffs,trt_df)
 ################################
 #Calculate the number of treatments
 ################################
-# TODO possibly reduce to 6 days because the average between 7/5 days could be there
+
+
 duration_of_season <- nrow(unique(default_res_ls[2][[1]][[1]]["doy"]))
 min_prot_dur <-  7
 max_trt <- 
@@ -138,9 +139,9 @@ data.frame(min_prot_dur_e  = min_prot_dur_e,
            reduction = round(max_trt_e/ max_trt,3))
 rm(duration_of_season)
 
-################################
-#Calculate the number of treatments
-################################
+####################################################
+#Calculate the number of predicted outbreaks and treatments
+####################################################
 
 
 # load( file= here::here("tmp", "outbreaks&wth&outputs.Rdata"))
@@ -158,6 +159,7 @@ clusterExport(cl, c("default_res_ls", "TPPFun", "ControlFreqFun",
 clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 
 #Calculate the number of predicted outbreaks for each waof the cutoff points
+begin <-  Sys.time()
 tpp_ev_ls <-
   pbapply::pblapply(warning_thresholds, function(x) {
     TPPFun(x, default_res_ls[1][[1]])
@@ -183,9 +185,19 @@ trt_ev_ls <-
 Sys.time() - begin;rm(begin)
 stopCluster(cl)
 
+#Save outputs of the diagnostic performance at 26 utoff points
+
+default_eval_lss <- list(tpp_ev_ls, trt_ev_ls)
+
+save(default_eval_lss, file = here::here("out", "default", "model_eval.Rdata"))
+
+
 #############################################
 #Visualise the outputs of threatment lists
 #############################################
+source(here::here("scr","lib",  "pkg.R"))
+load( file = here::here("out", "default", "model_eval.Rdata"))
+
 lapply(default_res_ls[2][[1]], function(x){
   x <- separate(x, id, into = c("stna", "year"), sep = "_")
   data.frame(risk = sum(x$cumul_risk,na.rm = T  ),
@@ -201,17 +213,21 @@ lapply(default_res_ls[2][[1]], function(x){
 lapply(trt_ev_ls, function(x){
   x <- separate(x, id, into = c("stna", "year"), sep = "_")
   
-  data.frame(risk = x[x$warning_thres == 12,"risk_trt"] %>% unlist(),
+  data.frame(
+    risk = x[x$warning_thres == 12,"risk_trt"] %>% unlist(),
              stna = unique(x$stna))
 }) %>% 
   bind_rows() %>% 
   ggplot(aes( reorder(stna, risk, FUN = median), risk))+
   geom_boxplot()+
-  coord_flip()+
+  coord_flip()+ 
   labs(title = "Number of treatments with the risk model at 90% accuracy.")
+
 
 #for each model, find a 90% risk trhreshold
 
+tpp_ev_ls <-  default_eval_lss[[1]]
+trt_ev_ls <-  default_eval_lss[[2]]
 
 models <- 
   tpp_ev_ls[ , grepl("risk", colnames(tpp_ev_ls))] %>% colnames()
@@ -246,8 +262,40 @@ tpp_ev_long <-
 eval_long <- 
   left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model" ))
 
- p1 <- 
-left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model")) %>%
+#################################################################
+#Diag plots
+#################################################################
+
+
+eval_long$model <- 
+  gsub("risk_", "R",  eval_long$model) %>% 
+    gsub("risk", "R",  .) %>% 
+    
+    gsub("cumul_R", "cR",  .) %>% 
+    gsub("ir_R", "MIR",  .) %>% 
+  gsub("defMIR", "IR",  .) 
+  
+eval_long$model <- 
+  factor(eval_long$model, levels = c(  "R", "cR", "Rsi", "cRsi","Rmi", "cRmi", "IR","MIR" ))
+
+# eval_long$col <-  my_pair
+#Set  color scheme
+library('unikn') 
+my_pair <- seecol(pal_unikn_pair, n = 8)
+names(my_pair) <- levels(eval_long$model)
+
+eval_long%>%
+  # arrange(spec) %>%
+  # mutate(model = factor(model,levels =as.character(levels(eval_long$model)))) %>% 
+
+  ggplot(aes(x =spec, y =sens, color =model)) +
+  # geom_point(size = .5) +
+  geom_line() + 
+  scale_color_manual(values = my_pair)
+scale_colour_identity()
+
+pp <- 
+  eval_long %>%
   ggplot(aes(spec, sens, color = model)) +
   geom_hline(
     yintercept = seq(0 , 1, 0.1),
@@ -255,9 +303,6 @@ left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model")) %>%
     color = "gray",
     linetype = "dotted"
   )+
-  geom_hline(yintercept = c(.9,.8), 
-             linetype = "dashed",
-             size = .2) +
   geom_vline(
     xintercept = red_df$reduction,
     size = 0.1,
@@ -278,6 +323,8 @@ left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model")) %>%
     labels = red_df$min_prot_dur_e,
     name = "Proportion of treatment reduction from the 7-day application schedule"
   ) +
+  scale_color_manual(values = my_pair)+
+  labs(color = "Model:")+
 theme_bw() +
   theme(
     text = element_text(size = 10.5),
@@ -285,7 +332,15 @@ theme_bw() +
     panel.grid.minor = element_blank()
   )
 
+p1 <- 
+pp+
+  geom_hline(yintercept = c(.9,.8), 
+             linetype = "dashed",
+             size = .2) 
+  
 
+  
+  
  p3 <- 
   ggplot(eval_long,aes(spec, sens, color = model, label = warning_thres))+
   geom_hline(
@@ -319,6 +374,7 @@ theme_bw() +
       labels = red_df$min_prot_dur_e,
       name = "Proportion of treatment reduction from the 7-day application schedule"
     ) +
+    scale_color_manual(values = my_pair)+
     
   ggrepel::geom_text_repel(size = 2)+
   theme_bw() +
@@ -332,30 +388,146 @@ theme_bw() +
   
   theme(legend.position = "top")
 
-p2 <- 
-  p1+
-  coord_cartesian(ylim=c(0.8,1), xlim = c(0.6,1))
-ggsave(filename = here::here("out", "default", "model_eval.png"),  plot=p1)
-ggsave(filename = here::here("out", "default", "model_eval_crop.png"),  plot=p2)
-ggsave(filename = here::here("out", "default", "model_eval_facets.png"),  plot=p3)
+ p2 <-
+   pp +
+   geom_hline(
+     yintercept = c(.95, .9, .85),
+     linetype = "dashed",
+     size = .1,
+     alpha = .5
+   ) +
+   coord_cartesian(ylim = c(0.8, 1), xlim = c(0.6, 1)) +
+   scale_y_continuous(
+
+          breaks = seq(0.8, 1, 0.05),
+     name = "Proportion of predicted outbreaks"
+   ) 
+   
+ggsave(filename = here::here("out", "default", "model_eval.png"),  plot=p1,
+       width = 7, height = 4, units = "in")
+ggsave(filename = here::here("out", "default", "model_eval_crop.png"),  plot=p2,
+       width = 7, height = 4, units = "in")
+ggsave(filename = here::here("out", "default", "model_eval_facets.png"),  plot=p3,
+       width = 7, height = 5, units = "in")
+
+shell.exec(here::here("out", "default"))
 
 #################################################################
 #Calculate the partial ROC
 #################################################################
 
 
+eval_longer <- 
+split(eval_long, eval_long$model) %>% 
+  
+lapply(., function(fundf){
+
+  for(prop_tpp in c(0.8, 0.85, 0.9)){
+  
+ if(fundf$sens[1] >prop_tpp){
+   # find the two nearest warning thresholds to the accepted decision threshold
+   closest_high <- 
+     fundf$sens[fundf$sens>prop_tpp] %>% tail(1)
+   
+   closest_low <-
+     fundf$sens[which(fundf$sens<prop_tpp)][1]
+   
+   dff <- fundf[fundf$sens >= closest_low& fundf$sens <= closest_high,]
+   spec <- dff$spec %>% unlist()
+   sens <- dff$sens %>% unlist
+   
+   value <- 
+     predict(lm(spec ~ sens ), data.frame(sens = prop_tpp))
+   
+   which(fundf$sens<prop_tpp)[1]
+   fundf <- 
+   add_row(fundf, 
+           warning_thres = prop_tpp,
+           model = unique(fundf$model),
+           spec = value, 
+           sens = prop_tpp,
+           .before = which(fundf$sens<prop_tpp)[1])
+ }else{
+   fundf <- 
+   add_row(fundf, 
+           warning_thres = prop_tpp,
+           model = unique(fundf$model),
+           spec = NA, 
+           sens = prop_tpp,
+           .before = 1)
+ }
+  
+
+}
+  return(fundf)
+  
+}
+) %>% 
+  bind_rows()
 
 
+eval_longer %>% 
+  group_by(model) %>% 
+  filter(warning_thres %in% c( 0.9, 0.85, 0.8)) %>% 
+  mutate(spec = round(spec, 3)*100) %>% 
+  dplyr::arrange(warning_thres) %>% 
+  dplyr::select(-c(warning_thres)) %>% 
+  
+  # group_by(model) %>% 
+  # dplyr::arrange(desc(model)) %>% 
+  spread(model, spec) %>% 
+  write_csv(here::here("out" ,"default", "Diag perf default.csv" ))
+  spread(model, spec)
 
 
+eval_long$warning_thres
 
 
-
-
-
-
-
-
+eval_longer %>% 
+  group_by(model) %>% 
+  filter(sens>= 0.8) %>% 
+  mutate(spec = round(spec, 3)*100) %>% 
+  # ggplot(aes(spec,sens, color = model))+
+  # geom_line()+
+  # geom_point(size = .5)
+  # facet_wrap(~model)%>%
+    ggplot(.,aes(spec, sens, color = model)) +
+    geom_hline(
+      yintercept = seq(0 , 1, 0.1),
+      size = 0.1,
+      color = "gray",
+      linetype = "dotted"
+    )+
+    geom_hline(yintercept = c(.9,.8), 
+               linetype = "dashed",
+               size = .2) +
+    geom_vline(
+      xintercept = red_df$reduction,
+      size = 0.1,
+      color = "gray",
+      linetype = "solid",
+      alpha= .5
+    )+
+    geom_point(size = .5) +
+    geom_line() +
+    scale_y_continuous(limits = c(0, 1),
+                       expand = c(0, 0),
+                       breaks = seq(0.8, 1, 0.1),
+                       name = "Proportion of predicted outbreaks") +
+    scale_x_continuous(
+      limits = c(0, 1),
+      expand = c(0, 0),
+      breaks = red_df$reduction,
+      labels = red_df$min_prot_dur_e,
+      name = "Proportion of treatment reduction from the 7-day application schedule"
+    ) +
+    theme_bw() +
+    theme(
+      text = element_text(size = 10.5),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+  
 
 
 

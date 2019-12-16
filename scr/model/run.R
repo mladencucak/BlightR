@@ -3,6 +3,7 @@
 # data_ls[[1]]-> wth
 # x-> wth
 
+#source(here::here("scr", "lib", "funs.R"))
 # fun_df <-lss[[1]]
 # max_na = NULL
 # temporal_res = "daily" #resoulution of the final data to be returned, daily or hourly. if hourly returned at noon
@@ -105,9 +106,14 @@ BlightR <- function(fun_df,
   result_ls <- list()
 
   #Define the start of sporulation 
-  # i = 141
+  # i = 136
   for(i in c(begin:end)){
-+    daydf <- 
+    sporstart <- 
+      timedf[ timedf$doy == c(i-1), "sunset_hr"] -
+      parameters[ ,"hr_before_spor"] %>% as.numeric()
+    infstop <- timedf[ timedf$doy == c(i+1), "sunrise_hr"] + parameters[ ,"hr_after_inf"] %>% as.numeric()
+    
+    daydf <- 
       do.call("rbind", 
               list(
                 fun_df[with(fun_df, hour >= sporstart & doy == c(i-1)),],# from the afternoon the day before
@@ -116,11 +122,6 @@ BlightR <- function(fun_df,
               )
       )
     
-    bind_rows( list(
-      fun_df[with(fun_df, hour >= sporstart & doy == c(i-1)),],# from the afternoon the day before
-      fun_df[with(fun_df,  doy == i),],
-      fun_df[with(fun_df, hour <= infstop & doy == c(i+1)),] #ending in the morning on the day after
-    ))
     # TODO finnish NAs and solar radiation column in one
     # fun_df[ 48, "temp" ] <- NA
               
@@ -197,13 +198,30 @@ BlightR <- function(fun_df,
         #Cumulative sum of the infection after sporulation requirement has been met
         #The initial value is total sporulation of the day
         # daydf[idx-1,"inf"] <- max(daydf$spor_sum)
-        daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- 
-          cumsum( daydf[c(idx-1):nrow(daydf),"inf"])
-        
-        # Calculation using the 
-        # daydf$inf[daydf$inf==0, ] <- NA
         # daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- 
-        #   ave(coalesce(daydf$inf, 0), data.table::rleid(zoo::na.locf(daydf$inf != 0,maxgap = 4)), FUN = cumsum)
+        #   cumsum( daydf[c(idx-1):nrow(daydf),"inf"])
+        
+        #Cumulative sum of the infection after sporulation requirement has been met
+        #The accumulation breaks if the conditions arent met for more than infstop hours
+        infstop <- 3
+        
+        infr <- 
+          daydf[c(idx-1):nrow(daydf),"inf"]
+        infwin <- rep(1, infstop)
+        infr <- c(infr, infwin)
+        infrr <- infr
+        for (k in c(1:c(length(infr)-infstop))){
+          # i = 7
+          if(sum(infr[k :k+infstop])>0){
+            infrr[k] <- infr[k]
+          }else{
+            infrr[k:length(infr)] <-0
+            break
+          }
+        }
+        
+        infrr <- infrr[1:c(length(infr)-infstop)]
+        daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- infrr
         
         ############################
         #Survival
@@ -260,14 +278,32 @@ BlightR <- function(fun_df,
       #Cumulative sum of the infection after sporulation requirement has been met
       #The initial value is total sporulation of the day
       # daydf[idx-1,"inf"] <- max(daydf$spor_sum)
-      daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- 
-        cumsum( daydf[c(idx-1):nrow(daydf),"inf"])
+        # cumsum( daydf[c(idx-1):nrow(daydf),"inf"])
+      
+      #Cumulative sum of the infection after sporulation requirement has been met
+      #The accumulation breaks if the conditions arent met for more than infstop hours
+      infstop <- 3
 
-      # Calculation using the 
-      # daydf$inf[daydf$inf==0, ] <- NA
-      # daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- 
-      #   ave(coalesce(daydf$inf, 0), data.table::rleid(zoo::na.locf(daydf$inf != 0,maxgap = 4)), FUN = cumsum)
-            
+      
+      infr <- 
+        daydf[c(idx-1):nrow(daydf),"inf"]
+      infwin <- rep(1, infstop)
+      infr <- c(infr, infwin)
+      infrr <- infr
+      for (k in c(1:c(length(infr)-infstop))){
+        # i = 7
+        if(sum(infr[k :k+infstop])>0){
+          infrr[k] <- infr[k]
+        }else{
+          infrr[k:length(infr)] <-0
+          break
+        }
+      }
+      
+      infrr <- infrr[1:c(length(infr)-infstop)]
+      daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- infrr
+      
+
       ############################
       #Survival
       ############################
@@ -389,17 +425,17 @@ BlightR <- function(fun_df,
   # 
   #  fin <- fin[3:nrow(fin),]
 
-  fin[ , c("cumul_risk_si", "cumul_risk_mi", "cumul_risk")] <- NA
-  
-   fin$cumul_risk_si[!is.na(fin$risk_si)] <- 
-     stats::ave(fin$risk_si[!is.na(fin$risk_si)], cumsum(fin$risk_si[!is.na(fin$risk_si)] == 0), FUN = cumsum)
- 
-   fin$cumul_risk[!is.na(fin$risk)] <- 
-     stats::ave(fin$risk[!is.na(fin$risk)], cumsum(fin$risk[!is.na(fin$risk)] == 0), FUN = cumsum)
-   
-   fin$cumul_risk_mi[!is.na(fin$risk_mi)] <- 
-     stats::ave(fin$risk_mi[!is.na(fin$risk_mi)], cumsum(fin$risk_mi[!is.na(fin$risk_mi)] == 0), FUN = cumsum)
-   
+  # fin[ , c("cumul_risk_si", "cumul_risk_mi", "cumul_risk")] <- NA
+  # 
+  #  fin$cumul_risk_si[!is.na(fin$risk_si)] <- 
+  #    stats::ave(fin$risk_si[!is.na(fin$risk_si)], cumsum(fin$risk_si[!is.na(fin$risk_si)] == 0), FUN = cumsum)
+  # 
+  #  fin$cumul_risk[!is.na(fin$risk)] <- 
+  #    stats::ave(fin$risk[!is.na(fin$risk)], cumsum(fin$risk[!is.na(fin$risk)] == 0), FUN = cumsum)
+  #  
+  #  fin$cumul_risk_mi[!is.na(fin$risk_mi)] <- 
+  #    stats::ave(fin$risk_mi[!is.na(fin$risk_mi)], cumsum(fin$risk_mi[!is.na(fin$risk_mi)] == 0), FUN = cumsum)
+  #  
    
    ###############################
    # Final results
@@ -460,9 +496,6 @@ BlightR <- function(fun_df,
         risk_mi = DailyAt(fin$risk_mi, 11),
         risk_si = DailyAt(fin$risk_si, 14),
         risk =  DailyAt(fin$risk, 17),
-        cumul_risk_mi = DailyAt(fin$cumul_risk_mi, 19),
-        cumul_risk_si = DailyAt(fin$cumul_risk_si, 21),
-        cumul_risk = DailyAt(fin$cumul_risk, 23)
       )
     fin_hourly <- cbind(fun_df[ ,vars_to_return],fin_hourly)
     final <- fin_hourly
