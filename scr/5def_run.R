@@ -2,7 +2,6 @@
 ###################################################################################
 # Source data
 ###################################################################################
-if("here"%in% installed.packages()==FALSE){install.packages("here");require("here")}
 source(here::here("scr","lib",  "pkg.R"))
 source(here::here("scr", "lib", "funs.R"))
 
@@ -54,22 +53,16 @@ cl <- makeCluster(cores)
 clusterExport(cl, c("BlightR","IrishRulesModel", "lss", "RunModel", "ExtractCol"))
 
 
-out_ls <- pblapply(lss, function(x)  RunModel(x, run_type = "model",ir_run = TRUE,ir_def_run = TRUE) , cl = cl)
-trt_ls <-  pblapply(wth_ls, function(x)  RunModel(x, run_type = "wth",ir_run = TRUE,ir_def_run = TRUE), cl = cl)
+out_ls <-
+  pblapply(lss, function(x)  
+    RunModel(x, run_type = "model",ir_run = TRUE,ir_def_run = TRUE) , 
+    cl = cl)
+trt_ls <-  
+  pblapply(wth_ls, function(x)  
+    RunModel(x, run_type = "wth",ir_run = TRUE,ir_def_run = TRUE), 
+    cl = cl)
 
 
-# out_ls <- list()
-# trt_ls <- list()
-# for(i in seq_along(lss)){
-#   out_ls[[i]] <- BlightR(lss[[i]])
-#   out_ls[[i]]$ir <- IrishRulesModel(lss[[i]], temporal_res = "daily")
-#   print(i)
-# }
-# for(i in seq_along(wth_ls)){
-#   trt_ls[[i]] <- BlightR(wth_ls[[i]])
-#   trt_ls[[i]]$ir <- IrishRulesModel(wth_ls[[i]], temporal_res = "daily", replace_na = TRUE)
-#   print(i)
-# }
 
 #add ID to each outbreak
 # out_ls <- 
@@ -94,6 +87,7 @@ rm( out_ls, trt_ls)
 ################################
 
 load( file = here::here("out", "default", "model_outputs.Rdata"))
+
 trt_df <- do.call("rbind", default_res_ls[2][[1]])
 
 Cutoffs <- function(x){
@@ -105,9 +99,6 @@ warn_t_df <-
              risk_si =  Cutoffs(trt_df[ , "risk_si"]),
              risk_mi = Cutoffs(trt_df[ , "risk_mi"]),
              risk = Cutoffs(trt_df[ , "risk"]),
-             cumul_risk_si = Cutoffs(trt_df[ , "cumul_risk_si"]),
-             cumul_risk_mi = Cutoffs(trt_df[ , "cumul_risk_mi"]),
-             cumul_risk = Cutoffs(trt_df[ , "cumul_risk"]),
              ir_risk = seq.int(1,26,1),
              defir_risk = seq.int(1,26,1)
   )
@@ -201,7 +192,7 @@ load( file = here::here("out", "default", "model_eval.Rdata"))
 
 lapply(default_res_ls[2][[1]], function(x){
   x <- separate(x, id, into = c("stna", "year"), sep = "_")
-  data.frame(risk = sum(x$cumul_risk,na.rm = T  ),
+  data.frame(risk = sum(x$risk,na.rm = T  ),
              stna = unique(x$stna))
 }) %>% 
   bind_rows() %>% 
@@ -272,17 +263,15 @@ eval_long$model <-
   gsub("risk_", "R",  eval_long$model) %>% 
     gsub("risk", "R",  .) %>% 
     
-    gsub("cumul_R", "cR",  .) %>% 
     gsub("ir_R", "MIR",  .) %>% 
   gsub("defMIR", "IR",  .) 
   
 eval_long$model <- 
-  factor(eval_long$model, levels = c(  "R", "cR", "Rsi", "cRsi","Rmi", "cRmi", "IR","MIR" ))
+  factor(eval_long$model, levels = c(  "R", "Rsi","Rmi", "IR","MIR" ))
 
-# eval_long$col <-  my_pair
 #Set  color scheme
 library('unikn') 
-my_pair <- seecol(pal_unikn_pair, n = 8)
+my_pair <- seecol(pal_unikn_pair)[c(1,7,9,15,16)]
 names(my_pair) <- levels(eval_long$model)
 
 eval_long%>%
@@ -293,7 +282,7 @@ eval_long%>%
   # geom_point(size = .5) +
   geom_line() + 
   scale_color_manual(values = my_pair)
-scale_colour_identity()
+
 
 pp <- 
   eval_long %>%
@@ -404,9 +393,11 @@ pp+
      name = "Proportion of predicted outbreaks"
    ) 
    
-ggsave(filename = here::here("out", "default", "model_eval.png"),  plot=p1,
+ggsave(filename = here::here("out", "default", "model_eval.png"),  
+       plot=p1,
        width = 7, height = 4, units = "in")
-ggsave(filename = here::here("out", "default", "model_eval_crop.png"),  plot=p2,
+ggsave(filename = here::here("out", "default", "model_eval_crop.png"),  
+       plot=p2,
        width = 7, height = 4, units = "in")
 ggsave(filename = here::here("out", "default", "model_eval_facets.png"),  plot=p3,
        width = 7, height = 5, units = "in")
@@ -466,19 +457,55 @@ lapply(., function(fundf){
 ) %>% 
   bind_rows()
 
+ max_tpp <- 
+eval_longer %>% 
+  mutate(sens = round(sens, 3)) %>% 
+  group_by(model) %>% 
+  filter(warning_thres %in% c( 1)) %>% 
+   dplyr::select(-c(warning_thres)) %>% 
+  mutate(spec = "Max TPP") %>% 
+  rename("TPP" = spec) %>% 
+  spread(model, sens) 
 
 eval_longer %>% 
   group_by(model) %>% 
   filter(warning_thres %in% c( 0.9, 0.85, 0.8)) %>% 
-  mutate(spec = round(spec, 3)*100) %>% 
+  mutate(spec = round(spec, 3)) %>% 
   dplyr::arrange(warning_thres) %>% 
   dplyr::select(-c(warning_thres)) %>% 
-  
-  # group_by(model) %>% 
-  # dplyr::arrange(desc(model)) %>% 
   spread(model, spec) %>% 
+  arrange(desc(sens)) %>% 
+  rename("TPP" = sens) %>% 
+  mutate(TPP = as.character(TPP)) %>% 
+  bind_rows(max_tpp, .) %>% 
   write_csv(here::here("out" ,"default", "Diag perf default.csv" ))
-  spread(model, spec)
+
+fun_df <- 
+eval_longer %>% 
+  group_by(model) %>% 
+  filter(sens>= 0.8) %>% 
+  filter(model == "R")
+  
+pracma::trapz(c( fundf$spec, 1), c(fundf$sens, 1))
+summarise(ff = pracma::trapz(c( spec, 1), c(sens, 1)))
+
+
+#function to calculate AUROC for list of inputs
+GetAUC <- function(fun_df) {
+  fun_df <- fun_df[rev(order(fun_df$cut_point)), ]
+  auc <-
+    pracma::trapz(c(0, fun_df$one_min_spec, 1), c(0, fun_df$sens, 1))
+  result <- data.frame(model = unique(fun_df$model),
+                       auc = auc)
+  return(result)
+}
+AUROC_data <- lapply(ROC_data, function(x)
+  GetAUC(x))
+AUROC_data <-
+  lapply(AUROC_data, function(x)
+    mutate_if(x, is.factor, as.character))
+AUROC_data <- bind_rows(AUROC_data)
+
 
 
 eval_long$warning_thres
