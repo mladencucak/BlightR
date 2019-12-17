@@ -23,7 +23,8 @@ list.of.packages <-
     "plotly",
     "foreach",
     "pbapply",
-    "parallel"
+    "parallel",
+    "unikn"
   )
 
 new.packages <-
@@ -32,6 +33,9 @@ new.packages <-
 #Download packages that are not already present in the library
 if (length(new.packages))
   install.packages(new.packages)
+
+if (length(new.packages))
+  install.packages(new.packages, repos = c(CRAN="https://cran.r-project.org/"))
 
 
 if ("reconPlots" %in% installed.packages() == FALSE) devtools::install_github("andrewheiss/reconPlots")

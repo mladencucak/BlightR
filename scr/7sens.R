@@ -60,7 +60,7 @@ par_set <-
 starttime <- Sys.time()
 
 
-for (i in par_set[1:2]){
+for (i in par_set){
   #  i <-  par_set[55]
   # x <- lss[[1]]
   # run_type <- "model"
@@ -173,7 +173,7 @@ eval_long$model <-
   factor(eval_long$model, levels = c(  "R", "Rsi","Rmi", "IR","MIR" ))
 
 #Set  color scheme
-library('unikn') 
+
 my_pair <- seecol(pal_unikn_pair)[c(1,7,9,15,16)]
 names(my_pair) <- levels(eval_long$model)
 
@@ -258,4 +258,6 @@ print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
 
 
 print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"), 3)))
+
+# source(here::here("scr", "lib", "GitCommit.R" ))
 
