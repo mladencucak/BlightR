@@ -8,7 +8,7 @@
 # max_na = NULL
 # temporal_res = "daily" #resoulution of the final data to be returned, daily or hourly. if hourly returned at noon
 # run_type= "model"
-# model_parameters = "default"
+# model_parameters = "TminInf-3l"
 
 
 BlightR <- function(fun_df,
@@ -106,7 +106,7 @@ BlightR <- function(fun_df,
   result_ls <- list()
 
   #Define the start of sporulation 
-  # i = 136
+  # i = 137
   for(i in c(begin:end)){
     sporstart <- 
       timedf[ timedf$doy == c(i-1), "sunset_hr"] -
@@ -146,7 +146,7 @@ BlightR <- function(fun_df,
      ############################
       #Calculate sporulation
       daydf$spor <-  
-        Sporulation(daydf$temp, daydf$rhum, parameters)
+        Sporulation(daydf$temp, daydf$rhum, parameters, rounding = 7)
     
       # Stop the sporulation n(hr_after_spor) hours after sunrise
       sporstop <-  timedf[timedf$doy == i, "sunrise_hr"] + parameters[ ,"hr_after_spor"] %>% as.numeric() 
@@ -167,7 +167,7 @@ BlightR <- function(fun_df,
       
       risk <- rep(0, nrow(daydf))
       
-      hours <- parameters[ ,"spor_dur"]
+      hours <- parameters[ ,"spor_dur"] %>% as.numeric()
       criteria_met  <- as.numeric( criteria_sum >= hours )
       idx           <- which(criteria_sum == hours)
       
@@ -221,7 +221,9 @@ BlightR <- function(fun_df,
         }
         
         infrr <- infrr[1:c(length(infr)-infstop)]
-        daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- infrr
+        
+        # Finally, Infection is a sum of 
+        daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- cumsum(infrr)
         
         ############################
         #Survival
@@ -237,7 +239,7 @@ BlightR <- function(fun_df,
                  sum(daydf[daydf$doy == i, "sol_rad"]), #sum measured values
                  sum(daydf[daydf$doy == i, "sol_nasa"], na.rm = T) #otherwise use estimated values)
           )
-        surv_prob <- SolSurv(solar_rad, parameters)
+        surv_prob <- SolSurv(solar_rad, parameters, rounding = 7)
         
         ############################
         #Risk calculation
@@ -271,7 +273,8 @@ BlightR <- function(fun_df,
       daydf[idx:nrow(daydf), "inf"] <-
         Infection(temp = daydf[idx:nrow(daydf), "temp"], 
                   rh = daydf[idx:nrow(daydf), "rhum"], 
-                  params_inf = parameters)
+                  params_inf = parameters,
+                  rounding = 7)
       
       
       
@@ -301,8 +304,9 @@ BlightR <- function(fun_df,
       }
       
       infrr <- infrr[1:c(length(infr)-infstop)]
-      daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- infrr
       
+      # Finally, Infection is a sum of hourly infection 
+      daydf[c(idx-1):nrow(daydf),"cumul_inf"] <- cumsum(infrr)
 
       ############################
       #Survival
@@ -334,7 +338,8 @@ BlightR <- function(fun_df,
       ############################
       #Risk calculation
       ############################
-      # Risk is calculated as a product of sporulation, spore mortality due to the solar radiation and infection risk
+      # Risk is calculated as a product of sporulation, spore mortality 
+      # (due to the solar radiation) and infection risk
       risk <- 
       max(daydf$spor_sum, na.rm = TRUE) * 
         max(daydf$cumul_inf, na.rm = TRUE)* 

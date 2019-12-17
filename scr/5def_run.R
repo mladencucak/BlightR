@@ -112,6 +112,7 @@ rm(Cutoffs,trt_df)
 ################################
 #Calculate the number of treatments
 ################################
+# load( file = here::here("out", "default", "warning_thresholds.Rdata"))
 
 
 duration_of_season <- nrow(unique(default_res_ls[2][[1]][[1]]["doy"]))
@@ -262,7 +263,6 @@ eval_long <-
 eval_long$model <- 
   gsub("risk_", "R",  eval_long$model) %>% 
     gsub("risk", "R",  .) %>% 
-    
     gsub("ir_R", "MIR",  .) %>% 
   gsub("defMIR", "IR",  .) 
   
@@ -274,14 +274,7 @@ library('unikn')
 my_pair <- seecol(pal_unikn_pair)[c(1,7,9,15,16)]
 names(my_pair) <- levels(eval_long$model)
 
-eval_long%>%
-  # arrange(spec) %>%
-  # mutate(model = factor(model,levels =as.character(levels(eval_long$model)))) %>% 
 
-  ggplot(aes(x =spec, y =sens, color =model)) +
-  # geom_point(size = .5) +
-  geom_line() + 
-  scale_color_manual(values = my_pair)
 
 
 pp <- 
@@ -480,13 +473,31 @@ eval_longer %>%
   bind_rows(max_tpp, .) %>% 
   write_csv(here::here("out" ,"default", "Diag perf default.csv" ))
 
-fun_df <- 
+
+# fun_df <- 
 eval_longer %>% 
+  drop_na() %>% 
+  filter(sens>= 0.8) %>% 
+  split(., .$model) %>% 
+  lapply(., function(fun_df){
+    fun_df[dim(fun_df)[1]:1,] %>% 
+      summarise(ff = pracma::trapz(c( spec, 1), c(sens-.2, .2)),
+                m = unique(model))
+  }
+  ) %>% 
+  bind_rows()
+
+fun_df <- 
+  eval_longer %>% 
   group_by(model) %>% 
   filter(sens>= 0.8) %>% 
   filter(model == "R")
   
-pracma::trapz(c( fundf$spec, 1), c(fundf$sens, 1))
+fun_df<-fun_df[dim(fun_df)[1]:1,]
+pracma::trapz(c( fun_df$spec, 1), c(fun_df$sens, 1))
+pracma::trapz(c( fun_df$sens, 1), c(fun_df$spec, 1))
+
+fun_df[dim(fun_df)[1]:1,] %>% 
 summarise(ff = pracma::trapz(c( spec, 1), c(sens, 1)))
 
 
@@ -499,7 +510,8 @@ GetAUC <- function(fun_df) {
                        auc = auc)
   return(result)
 }
-AUROC_data <- lapply(ROC_data, function(x)
+# AUROC_data <- 
+  lapply(ROC_data, function(x)
   GetAUC(x))
 AUROC_data <-
   lapply(AUROC_data, function(x)
