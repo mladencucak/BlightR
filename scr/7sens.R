@@ -60,12 +60,13 @@ par_set <-
 starttime <- Sys.time()
 
 
-for (i in par_set){
+for (i in par_set[93:length(par_set)]){
   #  i <-  par_set[55]
   # x <- lss[[1]]
   # run_type <- "model"
-  
-cl <- makeCluster(detectCores())
+
+
+cl <- makeCluster(detectCores()-1)
 clusterExport(cl, c("BlightR","IrishRulesModel", "RunModel",
                     "TPPFun", "ControlFreqFun", 
                     "ExtractCol",
@@ -91,8 +92,10 @@ out_trt <- pblapply(wth_ls, function(x)
   cl = cl)
 
 res_lss <- list(out_ls, out_trt)
+
 save(res_lss, file = here::here("out","eval", "out", paste0(i,".Rdata")))
 
+Sys.sleep(10)
 
 trt_df <- do.call("rbind", res_lss[2][[1]])
 
@@ -158,6 +161,8 @@ trt_ev_ls <-
 
 # Get the evaluation data in long format
 eval_long <- EvalTable(tpp_ev_ls, trt_ev_ls)
+
+Sys.sleep(10)
 
 ###############################################################
 #Save diag plots
@@ -253,7 +258,7 @@ rm(tpp_ev_ls, trt_ev_ls, eval_lss)
 
 rm(cl, p1, p2, eval_long )
 print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
-
+Sys.sleep(10)
 }
 
 
