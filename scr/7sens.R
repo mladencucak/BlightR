@@ -60,6 +60,8 @@ list.files(here::here("out", "eval", "eval")) %>%
 
 par_set <- 
 par_set[!str_detect(par_set, "0l")]
+par_set[par_set!=done]
+
 
 ###################################################################################
 # Run model
