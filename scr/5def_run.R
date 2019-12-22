@@ -206,17 +206,52 @@ lapply(default_res_ls[2][[1]], function(x){
 lapply(trt_ev_ls, function(x){
   x <- separate(x, id, into = c("stna", "year"), sep = "_")
   
-  data.frame(
-    risk = x[x$warning_thres == 12,"risk_trt"] %>% unlist(),
-             stna = unique(x$stna))
+ bind_rows (data.frame(risk = x[x$warning_thres == 13,"risk_si_trt"] %>% unlist(),
+             stna = unique(x$stna),
+             model = "Rsi"),
+  data.frame(risk = x[x$warning_thres == 14,"risk_mi_trt"] %>% unlist(),
+             stna = unique(x$stna),
+             model = "Rmi"),
+  data.frame(risk = x[x$warning_thres == 11,"risk_trt"] %>% unlist(),
+             stna = unique(x$stna),
+             model = "R"),
+  data.frame(risk = x[x$warning_thres == 2,"ir_risk_trt"] %>% unlist(),
+             stna = unique(x$stna),
+             model = "MIR"),
+  data.frame(risk = x[x$warning_thres == 2,"ir_risk_trt"] %>% unlist(),
+             stna = unique(x$stna),
+             model = "IR"))
 }) %>% 
   bind_rows() %>% 
   ggplot(aes( reorder(stna, risk, FUN = median), risk))+
   geom_boxplot()+
-  coord_flip()+ 
+  facet_wrap(~model, nrow = 1)+
+  coord_flip()+
   labs(title = "Number of treatments with the risk model at 90% accuracy.")
 
-
+lapply(trt_ev_ls, function(x){
+  x <- separate(x, id, into = c("stna", "year"), sep = "_")
+  
+  bind_rows (data.frame(risk = x[x$warning_thres == 13,"risk_si_trt"] %>% unlist(),
+                        stna = unique(x$stna),
+                        model = "Rsi"),
+             data.frame(risk = x[x$warning_thres == 14,"risk_mi_trt"] %>% unlist(),
+                        stna = unique(x$stna),
+                        model = "Rmi"),
+             data.frame(risk = x[x$warning_thres == 11,"risk_trt"] %>% unlist(),
+                        stna = unique(x$stna),
+                        model = "R"),
+             data.frame(risk = x[x$warning_thres == 6,"ir_risk_trt"] %>% unlist(),
+                        stna = unique(x$stna),
+                        model = "MIR"),
+             data.frame(risk = x[x$warning_thres == 2,"ir_risk_trt"] %>% unlist(),
+                        stna = unique(x$stna),
+                        model = "IR"))
+}) %>% 
+  bind_rows() %>% 
+  ggplot()+
+  geom_histogram(aes(risk), bins = 60)+
+  facet_wrap(~model)
 #for each model, find a 90% risk trhreshold
 
 tpp_ev_ls <-  default_eval_lss[[1]]
@@ -258,7 +293,13 @@ eval_long <-
 #################################################################
 #Diag plots
 #################################################################
-
+# source(here::here("scr","lib",  "pkg.R"))
+# load( file = here::here("out", "default", "model_eval.Rdata"))
+# source(here::here("scr", "lib", "DiagFuns.R"))
+# tpp_ev_ls <-  default_eval_lss[[1]]
+# trt_ev_ls <-  default_eval_lss[[2]]
+#  
+eval_long <- EvalTable(tpp_ev_ls, trt_ev_ls)
 
 eval_long$model <- 
   gsub("risk_", "R",  eval_long$model) %>% 
@@ -270,8 +311,7 @@ eval_long$model <-
   factor(eval_long$model, levels = c(  "R", "Rsi","Rmi", "IR","MIR" ))
 
 #Set  color scheme
-library('unikn') 
-my_pair <- seecol(pal_unikn_pair)[c(1,7,9,15,16)]
+my_pair <- unikn::seecol(pal_unikn_pair)[c(1,7,9,15,16)]
 names(my_pair) <- levels(eval_long$model)
 
 
@@ -445,10 +485,37 @@ lapply(., function(fundf){
 
 }
   return(fundf)
-  
 }
 ) %>% 
   bind_rows()
+
+eval_longer %>% 
+  drop_na() %>% 
+  filter(sens>= 0.85) %>% 
+  split(., .$model) %>% 
+  lapply(., function(fundf){
+    
+    
+    # fundf%>% 
+    #   map_df(rev) %>% 
+    #   summarise(pAUC = pracma::trapz(c( spec, 1), c(sens, max(sens))))
+    # 
+    # pracma::trapz(c(1, fundf$spec), c(max(fundf$sens),fundf$sens ))
+    
+    fundf%>% 
+      summarise(model = unique(model),
+                out_miss = paste0(abs(362* max(sens) -362), "/362"),
+                maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
+                pAUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
+                ff = pracma::trapz(c( rev(spec), 1), c(rev(sens)-.8, .2))
+      )
+    
+  }
+  ) %>% 
+  bind_rows() %>% 
+  arrange(desc(pAUC))
+
+    
 
  max_tpp <- 
 eval_longer %>% 
@@ -477,22 +544,41 @@ eval_longer %>%
 # fun_df <- 
 eval_longer %>% 
   drop_na() %>% 
-  filter(sens>= 0.8) %>% 
+  filter(sens>= 0.85) %>% 
   split(., .$model) %>% 
-  lapply(., function(fun_df){
-    fun_df[dim(fun_df)[1]:1,] %>% 
-      summarise(ff = pracma::trapz(c( spec, 1), c(sens-.2, .2)),
-                m = unique(model))
+  lapply(., function(fundf){
+    
+     
+    # fundf%>% 
+    #   map_df(rev) %>% 
+    #   summarise(pAUC = pracma::trapz(c( spec, 1), c(sens, max(sens))))
+    # 
+    # pracma::trapz(c(1, fundf$spec), c(max(fundf$sens),fundf$sens ))
+    
+    fundf%>% 
+      summarise(model = unique(model),
+                out_miss = paste0(abs(362* max(sens) -362), "/362"),
+                maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
+                pAUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
+                ff = pracma::trapz(c( rev(spec), 1), c(rev(sens)-.8, .2))
+                )
+    
   }
   ) %>% 
-  bind_rows()
+  bind_rows() %>% 
+  arrange(desc(pAUC))
 
-fun_df <- 
-  eval_longer %>% 
-  group_by(model) %>% 
-  filter(sens>= 0.8) %>% 
+
+fundf <-
+  eval_longer %>%
+  group_by(model) %>%
+  filter(sens>= 0.8) %>%
   filter(model == "R")
+# 
+# qplot(c(rev(fun_df$spec), 1),
+#       c(rev(fun_df$sens), max(fun_df$sens)))
   
+qplot()
 fun_df<-fun_df[dim(fun_df)[1]:1,]
 pracma::trapz(c( fun_df$spec, 1), c(fun_df$sens, 1))
 pracma::trapz(c( fun_df$sens, 1), c(fun_df$spec, 1))
