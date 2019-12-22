@@ -53,6 +53,13 @@ par_set <-
     here::here("scr", "model", "par_eval", "par_eval.xlsx"))[,"met_set"] %>% 
   unlist() %>% as.character()
 
+done <- 
+list.files(here::here("out", "eval", "eval")) %>% 
+  str_replace(".Rdata","")
+
+
+par_set <- 
+par_set[!str_detect(par_set, "0l")]
 
 ###################################################################################
 # Run model
@@ -60,7 +67,7 @@ par_set <-
 starttime <- Sys.time()
 
 
-for (i in par_set){
+for (i in par_set[par_set!=done]){
   #  i <-  par_set[55]
   # x <- lss[[1]]
   # run_type <- "model"
@@ -248,6 +255,7 @@ ggsave(filename = here::here("out", "eval", "graphs", paste0(i, "_zoom",".png"))
 
 eval_lss <- list(tpp_ev_ls, trt_ev_ls)
 save(eval_lss, file = here::here("out","eval", "eval", paste0(i,".Rdata")))
+save(eval_long, file = here::here("out","eval", "eval_long", paste0(i,".Rdata")))
 rm(tpp_ev_ls, trt_ev_ls, eval_lss)
 
 
@@ -260,4 +268,137 @@ print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
 print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"), 3)))
 
 # source(here::here("scr", "lib", "GitCommit.R" ))
+
+
+###############################################################
+#Diagnostic performance
+###############################################################
+
+par_set <- 
+  readxl::read_xlsx( 
+    here::here("scr", "model", "par_eval", "par_eval.xlsx"))[,"met_set"] %>% 
+  unlist() %>% as.character()
+
+
+#Load the evaluation data calculate perfomance 
+ls <- list()
+for(i in seq_along(par_set)){
+  fundf <- 
+get(load( here::here("out","eval", "eval", paste0(par_set[i],".Rdata"))))
+  eval_long <- 
+  EvalTable(fundf[[1]], fundf[[2]])
+  
+
+  eval_longer <- 
+    split(eval_long, eval_long$model) %>% 
+    
+    lapply(., function(fundf){
+      
+      for(prop_tpp in c(0.8, 0.85, 0.9)){
+        
+        if(fundf$sens[1] >prop_tpp){
+          # find the two nearest warning thresholds to the accepted decision threshold
+          closest_high <- 
+            fundf$sens[fundf$sens>prop_tpp] %>% tail(1)
+          
+          closest_low <-
+            fundf$sens[which(fundf$sens<prop_tpp)][1]
+          
+          dff <- fundf[fundf$sens >= closest_low& fundf$sens <= closest_high,]
+          spec <- dff$spec %>% unlist()
+          sens <- dff$sens %>% unlist
+          
+          value <- 
+            predict(lm(spec ~ sens ), data.frame(sens = prop_tpp))
+          
+          which(fundf$sens<prop_tpp)[1]
+          fundf <- 
+            add_row(fundf, 
+                    warning_thres = prop_tpp,
+                    model = unique(fundf$model),
+                    spec = value, 
+                    sens = prop_tpp,
+                    .before = which(fundf$sens<prop_tpp)[1])
+        }else{
+          fundf <- 
+            add_row(fundf, 
+                    warning_thres = prop_tpp,
+                    model = unique(fundf$model),
+                    spec = NA, 
+                    sens = prop_tpp,
+                    .before = 1)
+        }
+      }
+      return(fundf)
+    }
+    ) %>% 
+    bind_rows()
+  
+  # CAlculate the partial area under the curve and other diag perfomance indicatora
+  fin <- 
+  eval_longer %>% 
+    drop_na() %>% 
+    filter(sens>= 0.85) %>% 
+    split(., .$model) %>% 
+    lapply(., function(fundf){
+      fundf%>% 
+        summarise(model = unique(model),
+                  out_miss = paste0(abs(362* max(sens) -362), "/362"),
+                  maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
+                  pAUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
+                  ff = pracma::trapz(c( rev(spec), 1), c(rev(sens)-.8, .2))
+        )
+      
+    }
+    ) %>% 
+    bind_rows() %>% 
+    arrange(desc(pAUC))
+  
+  fin$eval <- par_set[i]
+  
+  ls[[i]] <- fin
+  print(head(fin, 1))
+  print(paste(i, "of", length(par_set)))
+ 
+}
+
+par_set
+
+str_detect(par_set,"-")
+
+sapply(par_set, function(x) 
+  
+  ifelse(str_detect(x,"-"), substring(x, nchar(x)-2), substring(x, nchar(x)-1))
+  
+  ) %>% unlist
+
+substring(x, nchar(x)-2)
+
+ls[98]
+
+evaldf <- 
+ls %>% 
+  bind_rows() %>% 
+   filter(model == "risk_mi") %>% 
+  dplyr:: filter(eval !="default") %>% 
+  group_by(eval) %>%
+  mutate(
+    lev = ifelse(str_detect(eval,"-"), 
+                 substring(eval, nchar(eval)-2,nchar(eval)-1), 
+                 substring(eval, nchar(eval)-1,nchar(eval))),
+    lev = as.numeric(gsub("l", "", lev)),
+    # stage = ifelse(str_detect(eval,"spor"))
+    par = ifelse(str_detect(eval,"-"), substring(eval, 1,nchar(eval)-3), substring(eval, 1, nchar(eval)-2))
+  )
+
+unique(evaldf$par)  
+  
+ggplot(evaldf)+
+   geom_line(aes(x = lev, pAUC ))+
+  facet_wrap(~par)
+  facet_grid(model~par)
+  
+  
+
+
 
