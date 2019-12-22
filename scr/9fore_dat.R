@@ -516,6 +516,10 @@ names(data_ls[[1]])
 # save(data_ls, file =here::here("out", "fore", "fore_dat_full.Rdata"))
 
 
+
+
+
+
 #######################################################
 # Quick analysis of the weather forecast data
 #######################################################
@@ -523,6 +527,9 @@ names(data_ls[[1]])
 # Convert scripts from the weather forecast project
 # Spread this data set so it is in same format as previous analysis  
 # Check the solar radiation data
+
+
+
 
 #######################################################
 # Run the models
@@ -563,6 +570,14 @@ length(data_ls)
 
 
 
+#####
+#convert from w/m2 to MJ/m2
+#conversion https://cliflo-niwa.niwa.co.nz/pls/niwp/wh.do_help?id=ls_rad
+data_ls <- 
+lapply(data_ls, function( fundf){
+fundf$sol_rad <- fundf$sol_rad * 0.0036
+return(fundf)
+})
 
 
 
@@ -596,10 +611,13 @@ RunModel <- function(x, ir_run = FALSE, ir_def_run = FALSE, model_parameters = "
 }
 
 
+
 cl <- makeCluster(detectCores())
 clusterExport(cl, c("BlightR","IrishRulesModel", "RunModel", "ExtractCol"))
 
 clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
+
+
 
 
 out_ls <-
