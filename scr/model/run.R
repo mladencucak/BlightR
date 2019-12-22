@@ -106,7 +106,7 @@ BlightR <- function(fun_df,
   result_ls <- list()
 
   #Define the start of sporulation 
-  # i = 137
+  # i = 122
   for(i in c(begin:end)){
     sporstart <- 
       timedf[ timedf$doy == c(i-1), "sunset_hr"] -
@@ -208,7 +208,7 @@ BlightR <- function(fun_df,
         infr <- 
           daydf[c(idx-1):nrow(daydf),"inf"]
         infwin <- rep(1, infstop)
-        infr <- c(infr, infwin)
+        infr <- c(infr, infwin) %>% unlist()
         infrr <- infr
         for (k in c(1:c(length(infr)-infstop))){
           # i = 7
@@ -291,7 +291,7 @@ BlightR <- function(fun_df,
       infr <- 
         daydf[c(idx-1):nrow(daydf),"inf"]
       infwin <- rep(1, infstop)
-      infr <- c(infr, infwin)
+      infr <- c(infr, infwin) %>% unlist()
       infrr <- infr
       for (k in c(1:c(length(infr)-infstop))){
         # i = 7
