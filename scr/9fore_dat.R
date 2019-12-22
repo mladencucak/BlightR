@@ -90,7 +90,6 @@ dff <- lapply(obs_files,function(x)
 dff <- dff[, 1:13]
 
 dff$date <-  dmy_hms(dff$date)
-# dff <- padr::pad(dff, by = "date", interval = "hour")
 
 dff <- 
   dff %>% 
@@ -123,7 +122,7 @@ obs_df[obs_df$short_date>= as.Date("2017-05-01")-1 & obs_df$short_date <= as.Dat
          obs_df$short_date>= as.Date("2019-05-01")-1 & obs_df$short_date <= as.Date("2019-09-18")+11, ]
 tail(obs_df)
 
-infil_gap <- 8 #Maximum length of the infill gap
+infil_gap <- 10 #Maximum length of the infill gap
 obs_df$temp <- round(na.spline(obs_df$temp, na.rm = FALSE, maxgap = infil_gap),1)
 obs_df$rhum <- round(na.spline(obs_df$rhum, na.rm = FALSE, maxgap = infil_gap),0)
 obs_df$rhum  <- sapply(obs_df$rhum, function(x) ifelse(x > 100, x <- 100, x))
@@ -137,7 +136,136 @@ nrow(obs_df)
 obs_df <-  obs_df[!duplicated(obs_df),]
 nrow(obs_df)
 
-rm(dff, obs_files)
+mutate(obs_df, year = year(date)) %>% 
+split(., list(.$stna, .$year)) %>% 
+  lapply(., function( fundf){
+    fundf <- padr::pad(fundf, by = "date",interval = "hour")
+  }) %>% 
+  bind_rows() %>% str()
+
+fundf <- 
+obs_df[obs_df$stna=="Dunsany",]
+# dff <-
+padr::pad(fundf, by = "date", interval = "hour")
+nrow(fundf)
+# 
+# 
+# split(obs_df, obs_df$stna) %>% 
+#   lapply(., function(fundf){
+#     fundf <- 
+#   })
+# rm(dff, obs_files)
+# 
+
+
+#######################################################
+#Load Observed weather data QCd
+#######################################################
+
+
+my_files <- 
+  list.files(here::here("dat", "forecast", "wth"))
+
+
+
+
+all_csv <-
+  lapply(my_files, function (i) {
+    read_csv(
+      paste0(here::here("dat", "forecast", "wth"), "/", i),
+      col_types = cols(
+        date = col_datetime(format = "%m/%d/%Y %H:%M"),
+        clamt = col_skip(),
+        clht = col_skip(),
+        vis = col_skip(),
+        w = col_skip(),
+        ww = col_skip()
+      ),
+      skip = 23
+    )
+  })
+
+#load metadata
+metadata_list <- lapply(my_files, function(x) 
+  read_csv( paste0(here::here("dat", "forecast", "wth"),"/", x),
+           col_names = FALSE)[1:4,1])
+
+#Delete unwanted characters from metadata
+metadata_list <- lapply(metadata_list, function(x) 
+  sapply(x, function(y){
+    str_replace_all(y,"Station Name: |Station Height: | M|Latitude:|Longitude: ", "" )
+  }))
+
+#Extract station numbers
+st_numbers <- gsub( "hly|.csv", "", my_files)
+
+#Assign station names to data frames
+station_names <- unlist(lapply(metadata_list, function(x) as.character(x[[1]])))
+names(all_csv) <- station_names
+
+
+#add metadata as columns to df
+all_csv <- Map(
+  cbind,
+  all_csv,
+  sol_rad = NA,
+  stna= as.character(station_names),
+  stno = as.numeric(st_numbers),
+  height = as.numeric(lapply(metadata_list, `[`, 2)),
+  lat = as.numeric(lapply(metadata_list, `[`, 3)),
+  long = as.numeric(lapply(metadata_list, `[`, 4))
+)
+
+
+
+
+#rbind all df into one - it takes a minute 4.2M rows!!
+df <- do.call("rbind", all_csv)                                   
+rm(all_csv, metadata_list, my_files, st_numbers, station_names, sun_vec)
+
+
+df<- add_column(df, short_date = as.Date(df$date), .after=1)
+df<- add_column(df, year = year(df$date), .after=2)
+df<- add_column(df, month = month(df$date), .after=3)
+df<- add_column(df, day = day(df$date), .after=4)
+df<- add_column(df, doy = yday(df$date), .after=4)
+df<- add_column(df, hour = hour(df$date), .after="day")
+
+#fix column types
+str(df)
+df[, -c(which( names(df) %in% c("stna", "date", "short_date")))] <- 
+  sapply(df[, -c(which( names(df) %in% c("stna", "date", "short_date")))], as.numeric)
+
+
+#Change factors to character
+df%>% mutate_if(is.factor, as.character) -> df
+
+ df <- 
+  filter(df, year > 2016)
+
+
+df$stna[df$stna == "JohnstownII"|df$stna == "JOHNSTOWNII"] <- "Johnstown"
+df$stna[df$stna == "Oak Park"|df$stna == "OAK PARK"|df$stna == "Oak_Park"] <- "Oakpark"
+df$stna[df$stna == "Moore Park"|df$stna == "Moore_Park"|df$stna == "MOORE PARK"] <- "Moorepark"
+df$stna[df$stna == "DUNSANY"] <- "Dunsany"
+df$stna[df$stna == "GURTEEN"] <- "Gurteen"
+
+
+obs_df <- 
+left_join(
+  obs_df[, c("stna", "date","short_date",  "sol_rad")],
+  df[, c("stna", "date","short_date", "temp", "rhum", "rain", "wdsp")],
+  by = c("stna", "date", "short_date")
+  
+)
+
+sapply(obs_df,function(x) mean(is.na(x)))
+
+infil_gap <- 10 #Maximum length of the infill gap
+obs_df$temp <- round(na.spline(obs_df$temp, na.rm = FALSE, maxgap = infil_gap),1)
+obs_df$rhum <- round(na.spline(obs_df$rhum, na.rm = FALSE, maxgap = infil_gap),0)
+obs_df$rhum  <- sapply(obs_df$rhum, function(x) ifelse(x > 100, x <- 100, x))
+sapply(obs_df,function(x) mean(is.na(x)))
 
 
 #######################################################
@@ -183,12 +311,14 @@ rm(wthls)
 
 
 cl <- makeCluster(4) # create a cluster with 2 cores
+library("doParallel")
 registerDoParallel(cl) # register the cluster
 
 
-start_time <- Sys.time()#measure time
+start_time <- Sys.time()#measure duration
 data_ls <-
   lapply(stations, function (x) {
+    # station <- stations[1]
     station <- x
     date_string <- vector(mode = "character")
     
@@ -197,11 +327,26 @@ data_ls <-
               .export = c("obs_df"),
               .packages = c("tidyverse", "lubridate", "stringr", "padr", "zoo", "imputeTS")) %dopar%
       {
+        # ec_date = time[90]
+        date_range <- 
+          seq.Date(ec_date-1, ec_date+10, by = "day")
+
+       available_obs<-
+          obs_df[obs_df[["stna"]] == station &
+                   obs_df[["short_date"]] %in% date_range,
+                 "short_date"] %>% unique() %>% unlist %>%  length()
+
+        #Testing        
+        # ec_date <- time[287]
+        # station <- stations[1]
+       
         date_string <- paste0(str_replace_all(ec_date, "-",""), "")
         #Some forecast files are missing 
         if(file.exists(here::here("dat", "forecast", "ECMWF", paste0("ec0103day",station, "-", date_string, "00.csv")))&
            file.exists(here::here("dat", "forecast", "ECMWF", paste0("ec0305day",station, "-", date_string, "00.csv")))&
-           file.exists(here::here("dat", "forecast", "ECMWF", paste0("ec0610day",station, "-", date_string, "00.csv")))
+           file.exists(here::here("dat", "forecast", "ECMWF", paste0("ec0610day",station, "-", date_string, "00.csv")))&
+           #check if there is observed data as well
+           available_obs==length(date_range)
         ){
           ec0103day <-
             data.table::fread(here::here("dat", "forecast", "ECMWF", paste0("ec0103day",station, "-", date_string, "00.csv")),
@@ -226,7 +371,7 @@ data_ls <-
           fore_df <- bind_rows(ec0103day, ec0305day, ec0610day) %>% tbl_df()
           
           #add missing hours
-          fore_df <- padr::pad(fore_df, by = "date")
+          fore_df <- padr::pad(fore_df, by = "date",interval = "hour")
           
           fore_df <-  add_column(fore_df, stna = station, .after = "date")
           fore_df <-  add_column(fore_df, set = "fore", .before = "date")
@@ -250,16 +395,17 @@ data_ls <-
           
           
           #Interpolate values for 3 and 6 hour forecast
-          infil_gap <- 6
+          infil_gap <- 8
           fore_df$temp <- round(na.spline(fore_df$temp, na.rm = FALSE, maxgap = infil_gap),1)
           fore_df$rhum <- round(na.spline(fore_df$rhum, na.rm = FALSE, maxgap = infil_gap),0)
           fore_df$rhum  <- sapply(fore_df$rhum, function(x) ifelse(x>100, x<-100, x))
-          fore_df$rain <- round(na.replace(fore_df$rain, 0),1)
+          fore_df$rain <- round(na_replace(fore_df$rain, 0),1)
           fore_df$sol_rad <- round(na.spline(fore_df$sol_rad, na.rm = FALSE, maxgap = infil_gap),1)
           fore_df$sol_rad <- ifelse(fore_df$sol_rad < 0, 0, fore_df$sol_rad)
           
           fore_df$wdsp <- round(na.spline(fore_df$wdsp, na.rm = FALSE, maxgap = infil_gap),0)
-          # fore_df$dir <- round(na.spline(df$dir, na.rm = FALSE, maxgap = infil_gap),0)
+
+          fore_df <- arrange(fore_df, date)          
           
           #get the observed data
           #we need to stitch a day before and after of observed data to let the model run 
@@ -272,7 +418,9 @@ data_ls <-
           obs_df_fun <-
             obs_df[obs_df[["stna"]] == station &
                      obs_df[["short_date"]] %in% date_range,
-                   cols]
+                   cols] %>% 
+            arrange(date)
+          
           obs_df_fun <-
             obs_df_fun[!duplicated(obs_df_fun$date),]
           obs_df_fun <-  add_column(obs_df_fun, stna = station, .after = "date")
@@ -281,6 +429,7 @@ data_ls <-
           obs_df_fun <-  add_column(obs_df_fun, day_step = sort(rep(seq(0,11,1),24)), .after = "for_date")
           obs_df_fun <-  add_column(obs_df_fun, hour_step = seq(-23,nrow(obs_df_fun)-24), .after = "day_step")
 
+
           #add -/+1 day of observed data to forecast data
           fore_df <- 
             bind_rows(obs_df_fun[ obs_df_fun$short_date == date_range[1], ],
@@ -288,27 +437,27 @@ data_ls <-
                       obs_df_fun[ obs_df_fun$short_date == max(date_range), ]) %>% 
             mutate( set  = "fore")
           
-          lss <- list()
-          #create df with single variable forecast/observed data 
-          vars <- c("temp", "rhum", "sol_rad" )
-          for (i in seq(vars)) {
-            x <- vars[i]
-            dff <- fore_df
-            dff[[x]] <- obs_df_fun[[x]];
-            dff[["set"]] <- paste("fore", x, sep = "_")
-            lss[[i]] <-  dff
-            names(lss)[i] <- paste("fore", x, sep = "_")
-            
-            dff <- obs_df_fun
-            dff[[x]] <- fore_df[[x]];
-            dff[["set"]] <- paste("obs", x, sep = "_")
-            lss[[i+length(vars)]] <-  dff
-            names(lss)[i+length(vars)] <- paste("obs", x, sep = "_")
-          }
+          # lss <- list()
+          # #create df with single variable forecast/observed data 
+          # vars <- c("temp", "rhum", "sol_rad" )
+          # for (i in seq(vars)) {
+          #   x <- vars[i]
+          #   dff <- fore_df
+          #   dff[[x]] <- obs_df_fun[[x]];
+          #   dff[["set"]] <- paste("fore", x, sep = "_")
+          #   lss[[i]] <-  dff
+          #   names(lss)[i] <- paste("fore", x, sep = "_")
+          #   
+          #   dff <- obs_df_fun
+          #   dff[[x]] <- fore_df[[x]];
+          #   dff[["set"]] <- paste("obs", x, sep = "_")
+          #   lss[[i+length(vars)]] <-  dff
+          #   names(lss)[i+length(vars)] <- paste("obs", x, sep = "_")
+          # }
           
           fulldf <- 
-            bind_rows(fore_df, obs_df_fun, lss)
-          rm(lss, fore_df, obs_df_fun)
+            bind_rows(fore_df, obs_df_fun)
+          rm( fore_df, obs_df_fun)
           
           fulldf
         }
@@ -321,24 +470,17 @@ start_time -  Sys.time() #time spend on loading the data
 rm(cl, obs_df, start_time, time, stations)
 
 #Checks
-str(data_ls[[1]][1])
-head(data_ls[[1]][[1]],20) 
+
+tail(data_ls[[3]][[1]],20) 
 tail(data_ls[[1]][1]) 
 nrow(data_ls[[1]][[1]]) /length(unique(data_ls[[1]][[1]]$set))
 
-lapply(data_ls, length)
-lapply(data_ls[[1]], nrow) %>% unlist() %>% as.numeric()
 
-lapply(data_ls, function(x)
-  lapply(x, function(y)
-    nrow(y)))%>%
-  unlist() %>% length()
-length(time)*5
+ data_ls <- unlist(data_ls, recursive=FALSE)
 
+ length(data_ls)
 
-data_ls <- unlist(data_ls, recursive=FALSE)
-
-#Remove empty data frames
+ #Remove empty data frames
 length(data_ls)
 data_ls <- 
 data_ls[!sapply(data_ls, function(x) is.null(nrow(x)))]
@@ -353,11 +495,25 @@ lapply(data_ls, function(x) {
 
     })
 
+#REmove the data with more than 1% of missing values
+sapply(data_ls, function(x) sum(is.na(x[,c( "temp", "rhum")])))%>% as.vector()
+
+nas <- sapply(data_ls, function(x) mean(is.na(x[,c( "temp", "rhum")])))%>% as.vector() %>% round(3)
+sum(nas<0.01)
+
+length(data_ls)
+data_ls <- 
+data_ls[nas<0.01] 
+length(data_ls)
+
+
+
+
 #Check if they all have the same names we pre-defined
 sapply(data_ls, function(x) all(names(x)== names(data_ls[[1]]))) %>% all()
 names(data_ls[[1]])
 
-# save(data_ls, file =here::here("out", "fore", "fore_dat.Rdata"))
+# save(data_ls, file =here::here("out", "fore", "fore_dat_full.Rdata"))
 
 
 #######################################################
@@ -374,7 +530,7 @@ names(data_ls[[1]])
 
 source(here::here("scr","lib",  "pkg.R"))
 source(here::here("scr", "lib", "funs.R"))
-load(here::here("out", "fore", "fore_dat.Rdata"))
+load(here::here("out", "fore", "fore_dat_full.Rdata"))
 
 # Add geo references to the data
 load(file = here::here("dat", "locations.Rdata"))
@@ -399,9 +555,19 @@ data_ls <-
 data_ls <- 
   split(data_ls, data_ls$id)
 
+sapply(data_ls, function(x) sum(is.na(x[,c( "temp", "rhum")])))%>% as.vector()
+
+nas <- sapply(data_ls, function(x) mean(is.na(x[,c( "temp", "rhum")])))%>% as.vector() %>% round(3)
+sum(nas<0.01)
+length(data_ls)
+
+
+
+
 
 
 source(here::here("scr", "model", "run.R"))
+
 source(here::here("scr", "lib", "IrishRulesModelSensitive.R"))
 
 RunModel <- function(x, ir_run = FALSE, ir_def_run = FALSE, model_parameters = "default", run_type=run_type ) {
@@ -409,6 +575,7 @@ RunModel <- function(x, ir_run = FALSE, ir_def_run = FALSE, model_parameters = "
   # eval_run will parametarise model with predetermined set of parameters
   # ir_run  determine if the Irish Rules model is to be run and attached to the data. 
   y <- BlightR(x, run_type = run_type, model_parameters = model_parameters)
+  
   if (ir_run == TRUE) {
     y$ir_risk <-
       IrishRulesModel(x,
@@ -435,7 +602,15 @@ clusterExport(cl, c("BlightR","IrishRulesModel", "RunModel", "ExtractCol"))
 clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 
 
-out_ls <- pblapply(data_ls[1:2], function(x)  RunModel(x, run_type = "fore",ir_run = TRUE, ir_def_run = TRUE) , cl = cl)
+out_ls <-
+pblapply(data_ls, function(x)
+  RunModel(
+    x,
+    run_type = "fore",
+    ir_run = TRUE,
+    ir_def_run = TRUE
+  ) , cl = cl)
+
 
 
 
