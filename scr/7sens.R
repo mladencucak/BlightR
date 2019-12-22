@@ -102,6 +102,7 @@ out_trt <- pblapply(wth_ls, function(x)
 res_lss <- list(out_ls, out_trt)
 save(res_lss, file = here::here("out","eval", "out", paste0(i,".Rdata")))
 
+Sys.sleep(10)
 
 trt_df <- do.call("rbind", res_lss[2][[1]])
 
@@ -136,6 +137,8 @@ red_df <-
              max_trt_e = max_trt_e,
              reduction = round(max_trt_e/ max_trt,3))
 
+
+
 rm(Cutoffs,trt_df,out_ls, out_trt,duration_of_season)
 
 ###################################################
@@ -160,13 +163,20 @@ trt_ev_ls <-
                      warn_t_df,
                      data = dta,
                      no_cal = max_trt,
-                     min_prot_dur = 5)
+                     min_prot_dur = 7)
     }) %>% bind_rows()
   },
   cl = cl) 
+Sys.sleep(10)
+
+eval_lss <- list(tpp_ev_ls, trt_ev_ls)
+save(eval_lss, file = here::here("out","eval", "eval", paste0(i,".Rdata")))
 
 # Get the evaluation data in long format
-eval_long <- EvalTable(tpp_ev_ls, trt_ev_ls)
+eval_long <- 
+  EvalTable(tpp_ev_ls, trt_ev_ls)%>% head
+
+rm(tpp_ev_ls, trt_ev_ls, eval_lss)
 
 ###############################################################
 #Save diag plots
@@ -255,14 +265,13 @@ ggsave(filename = here::here("out", "eval", "graphs", paste0(i,".png")),  plot=p
 ggsave(filename = here::here("out", "eval", "graphs", paste0(i, "_zoom",".png")),  plot=p2)
 
 
-eval_lss <- list(tpp_ev_ls, trt_ev_ls)
-save(eval_lss, file = here::here("out","eval", "eval", paste0(i,".Rdata")))
 save(eval_long, file = here::here("out","eval", "eval_long", paste0(i,".Rdata")))
-rm(tpp_ev_ls, trt_ev_ls, eval_lss)
 
 
 rm(cl, p1, p2, eval_long )
 print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
+Sys.sleep(10)
+
 
 }
 
@@ -270,6 +279,9 @@ print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
 print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"), 3)))
 
 # source(here::here("scr", "lib", "GitCommit.R" ))
+
+
+
 
 
 ###############################################################
@@ -281,16 +293,25 @@ par_set <-
     here::here("scr", "model", "par_eval", "par_eval.xlsx"))[,"met_set"] %>% 
   unlist() %>% as.character()
 
+done <- 
+  list.files(here::here("out", "eval", "eval_long")) %>% 
+  str_replace(".Rdata","")
 
-#Load the evaluation data calculate perfomance 
+
+par_set <- 
+  par_set[!str_detect(par_set, "0l")]
+par_set[par_set!=done]
+
+
 ls <- list()
-for(i in seq_along(par_set)){
-  fundf <- 
-get(load( here::here("out","eval", "eval", paste0(par_set[i],".Rdata"))))
-  eval_long <- 
-  EvalTable(fundf[[1]], fundf[[2]])
-  
 
+
+for (i in seq_along(par_set[par_set %in% done])){
+  
+  
+  fundf <- 
+    get(load( here::here("out","eval", "eval_long", paste0(par_set[par_set %in% done][i],".Rdata"))))
+  
   eval_longer <- 
     split(eval_long, eval_long$model) %>% 
     
@@ -338,7 +359,7 @@ get(load( here::here("out","eval", "eval", paste0(par_set[i],".Rdata"))))
   
   # CAlculate the partial area under the curve and other diag perfomance indicatora
   fin <- 
-  eval_longer %>% 
+    eval_longer %>% 
     drop_na() %>% 
     filter(sens>= 0.85) %>% 
     split(., .$model) %>% 
@@ -361,6 +382,21 @@ get(load( here::here("out","eval", "eval", paste0(par_set[i],".Rdata"))))
   ls[[i]] <- fin
   print(head(fin, 1))
   print(paste(i, "of", length(par_set)))
+  
+}
+  
+list.files(here::here("out","eval", "eval_long"))
+           
+           
+#Load the evaluation data calculate perfomance 
+ls <- list()
+for(i in seq_along(par_set)){
+  fundf <- 
+get(load( here::here("out","eval", "eval", paste0(par_set[i],".Rdata"))))
+  eval_long <- 
+  EvalTable(fundf[[1]], fundf[[2]])
+  
+
  
 }
 
