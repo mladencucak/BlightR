@@ -69,7 +69,13 @@ par_set[par_set!=done]
 starttime <- Sys.time()
 
 
-for (i in par_set[par_set!=done]){
+if(length(done)== 0){
+  par_set_run <- par_set
+}else{
+  par_set_run <- par_set[par_set!=done]
+}
+
+for (i in par_set_run){
   #  i <-  par_set[55]
   # x <- lss[[1]]
   # run_type <- "model"
