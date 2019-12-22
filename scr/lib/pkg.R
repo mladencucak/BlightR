@@ -24,7 +24,8 @@ list.of.packages <-
     "foreach",
     "pbapply",
     "parallel",
-    "unikn"
+    "unikn",
+    "pracma"
   )
 
 new.packages <-
