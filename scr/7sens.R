@@ -59,7 +59,7 @@ list.files(here::here("out", "eval", "eval")) %>%
 
 
 par_set <- 
-par_set[!str_detect(par_set, "0l")]
+par_set[str_detect(par_set, "0l")]
 par_set[par_set!=done]
 
 
@@ -72,7 +72,8 @@ starttime <- Sys.time()
 if(length(done)== 0){
   par_set_run <- par_set
 }else{
-  par_set_run <- par_set[par_set!=done]
+  par_set_run <- par_set[par_set!=done] 
+  par_set_run <- par_set_run[!is.na(par_set_run)]
 }
 
 for (i in par_set_run){
@@ -276,7 +277,11 @@ save(eval_long, file = here::here("out","eval", "eval_long", paste0(i,".Rdata"))
 
 rm(cl, p1, p2, eval_long )
 print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
-Sys.sleep(10)
+
+gc()
+Sys.sleep(20)
+# library(rstudioapi)
+# restartSession(command = "print('x')")
 
 
 }
