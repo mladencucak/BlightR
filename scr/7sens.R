@@ -415,8 +415,13 @@ print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"),
 # source(here::here("scr", "lib", "GitCommit.R" ))
 
 
+finalres <- 
+ls %>% 
+  bind_rows() 
 
+  save(finalres, file = here::here("out","eval", "final_diag.Rdata"))
 
+ 
 
 
 
