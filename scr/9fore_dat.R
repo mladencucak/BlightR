@@ -219,7 +219,7 @@ all_csv <- Map(
 
 
 
-#rbind all df into one - it takes a minute 4.2M rows!!
+#rbind all df into one 
 df <- do.call("rbind", all_csv)                                   
 rm(all_csv, metadata_list, my_files, st_numbers, station_names, sun_vec)
 
@@ -555,6 +555,9 @@ data_ls <-
     return(x)
   })
 
+
+
+
 # Split the data into data frames for each id to run the model 
 # Model needs to be run in that way to sync the outputs
 data_ls <- 
@@ -579,6 +582,8 @@ fundf$sol_rad <- fundf$sol_rad * 0.0036
 return(fundf)
 })
 
+data_ls %>% 
+  group_by(id) %>% 
 
 
 source(here::here("scr", "model", "run.R"))
