@@ -1,0 +1,577 @@
+id	set	date	for_date	day_step	hour_step	stna	short_date			sol_rad_forecasted	solar observed
+fore_2018-07-07_Johnstown	fore	7/6/2018 0:00	7/7/2018	0	-23	Johnstown	7/6/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/6/2018 1:00	7/7/2018	0	-22	Johnstown	7/6/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/6/2018 2:00	7/7/2018	0	-21	Johnstown	7/6/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/6/2018 3:00	7/7/2018	0	-20	Johnstown	7/6/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/6/2018 4:00	7/7/2018	0	-19	Johnstown	7/6/2018			3.5	3.5
+fore_2018-07-07_Johnstown	fore	7/6/2018 5:00	7/7/2018	0	-18	Johnstown	7/6/2018			39.1	39.1
+fore_2018-07-07_Johnstown	fore	7/6/2018 6:00	7/7/2018	0	-17	Johnstown	7/6/2018			56	56
+fore_2018-07-07_Johnstown	fore	7/6/2018 7:00	7/7/2018	0	-16	Johnstown	7/6/2018			78.5	78.5
+fore_2018-07-07_Johnstown	fore	7/6/2018 8:00	7/7/2018	0	-15	Johnstown	7/6/2018			142.3	142.3
+fore_2018-07-07_Johnstown	fore	7/6/2018 9:00	7/7/2018	0	-14	Johnstown	7/6/2018			155.9	155.9
+fore_2018-07-07_Johnstown	fore	7/6/2018 10:00	7/7/2018	0	-13	Johnstown	7/6/2018			178.5	178.5
+fore_2018-07-07_Johnstown	fore	7/6/2018 11:00	7/7/2018	0	-12	Johnstown	7/6/2018			244.3	244.3
+fore_2018-07-07_Johnstown	fore	7/6/2018 12:00	7/7/2018	0	-11	Johnstown	7/6/2018			197.7	197.7
+fore_2018-07-07_Johnstown	fore	7/6/2018 13:00	7/7/2018	0	-10	Johnstown	7/6/2018			305.1	305.1
+fore_2018-07-07_Johnstown	fore	7/6/2018 14:00	7/7/2018	0	-9	Johnstown	7/6/2018			274.5	274.5
+fore_2018-07-07_Johnstown	fore	7/6/2018 15:00	7/7/2018	0	-8	Johnstown	7/6/2018			254.3	254.3
+fore_2018-07-07_Johnstown	fore	7/6/2018 16:00	7/7/2018	0	-7	Johnstown	7/6/2018			201.1	201.1
+fore_2018-07-07_Johnstown	fore	7/6/2018 17:00	7/7/2018	0	-6	Johnstown	7/6/2018			146.9	146.9
+fore_2018-07-07_Johnstown	fore	7/6/2018 18:00	7/7/2018	0	-5	Johnstown	7/6/2018			90.4	90.4
+fore_2018-07-07_Johnstown	fore	7/6/2018 19:00	7/7/2018	0	-4	Johnstown	7/6/2018			37.9	37.9
+fore_2018-07-07_Johnstown	fore	7/6/2018 20:00	7/7/2018	0	-3	Johnstown	7/6/2018			3.2	3.2
+fore_2018-07-07_Johnstown	fore	7/6/2018 21:00	7/7/2018	0	-2	Johnstown	7/6/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/6/2018 22:00	7/7/2018	0	-1	Johnstown	7/6/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/6/2018 23:00	7/7/2018	0	0	Johnstown	7/6/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/7/2018 1:00	7/7/2018	1	1	Johnstown	7/7/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/7/2018 2:00	7/7/2018	1	2	Johnstown	7/7/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/7/2018 3:00	7/7/2018	1	3	Johnstown	7/7/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/7/2018 4:00	7/7/2018	1	4	Johnstown	7/7/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/7/2018 5:00	7/7/2018	1	5	Johnstown	7/7/2018			4	5.7
+fore_2018-07-07_Johnstown	fore	7/7/2018 6:00	7/7/2018	1	6	Johnstown	7/7/2018			32	39.1
+fore_2018-07-07_Johnstown	fore	7/7/2018 7:00	7/7/2018	1	7	Johnstown	7/7/2018			72	70.4
+fore_2018-07-07_Johnstown	fore	7/7/2018 8:00	7/7/2018	1	8	Johnstown	7/7/2018			116	93.4
+fore_2018-07-07_Johnstown	fore	7/7/2018 9:00	7/7/2018	1	9	Johnstown	7/7/2018			170	127.9
+fore_2018-07-07_Johnstown	fore	7/7/2018 10:00	7/7/2018	1	10	Johnstown	7/7/2018			205	222.1
+fore_2018-07-07_Johnstown	fore	7/7/2018 11:00	7/7/2018	1	11	Johnstown	7/7/2018			248	292.9
+fore_2018-07-07_Johnstown	fore	7/7/2018 12:00	7/7/2018	1	12	Johnstown	7/7/2018			289	229.5
+fore_2018-07-07_Johnstown	fore	7/7/2018 13:00	7/7/2018	1	13	Johnstown	7/7/2018			307	290.4
+fore_2018-07-07_Johnstown	fore	7/7/2018 14:00	7/7/2018	1	14	Johnstown	7/7/2018			292	305
+fore_2018-07-07_Johnstown	fore	7/7/2018 15:00	7/7/2018	1	15	Johnstown	7/7/2018			280	278.6
+fore_2018-07-07_Johnstown	fore	7/7/2018 16:00	7/7/2018	1	16	Johnstown	7/7/2018			243	249.5
+fore_2018-07-07_Johnstown	fore	7/7/2018 17:00	7/7/2018	1	17	Johnstown	7/7/2018			196	203.7
+fore_2018-07-07_Johnstown	fore	7/7/2018 18:00	7/7/2018	1	18	Johnstown	7/7/2018			143	151
+fore_2018-07-07_Johnstown	fore	7/7/2018 19:00	7/7/2018	1	19	Johnstown	7/7/2018			87	91.9
+fore_2018-07-07_Johnstown	fore	7/7/2018 20:00	7/7/2018	1	20	Johnstown	7/7/2018			37	41.4
+fore_2018-07-07_Johnstown	fore	7/7/2018 21:00	7/7/2018	1	21	Johnstown	7/7/2018			5	6
+fore_2018-07-07_Johnstown	fore	7/7/2018 22:00	7/7/2018	1	22	Johnstown	7/7/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/7/2018 23:00	7/7/2018	1	23	Johnstown	7/7/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/8/2018 0:00	7/7/2018	1	24	Johnstown	7/8/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/8/2018 1:00	7/7/2018	2	25	Johnstown	7/8/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/8/2018 2:00	7/7/2018	2	26	Johnstown	7/8/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/8/2018 3:00	7/7/2018	2	27	Johnstown	7/8/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/8/2018 4:00	7/7/2018	2	28	Johnstown	7/8/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/8/2018 5:00	7/7/2018	2	29	Johnstown	7/8/2018			4	6
+fore_2018-07-07_Johnstown	fore	7/8/2018 6:00	7/7/2018	2	30	Johnstown	7/8/2018			36	40.4
+fore_2018-07-07_Johnstown	fore	7/8/2018 7:00	7/7/2018	2	31	Johnstown	7/8/2018			86	90.4
+fore_2018-07-07_Johnstown	fore	7/8/2018 8:00	7/7/2018	2	32	Johnstown	7/8/2018			141	145.1
+fore_2018-07-07_Johnstown	fore	7/8/2018 9:00	7/7/2018	2	33	Johnstown	7/8/2018			196	201.8
+fore_2018-07-07_Johnstown	fore	7/8/2018 10:00	7/7/2018	2	34	Johnstown	7/8/2018			243	250
+fore_2018-07-07_Johnstown	fore	7/8/2018 11:00	7/7/2018	2	35	Johnstown	7/8/2018			280	286.9
+fore_2018-07-07_Johnstown	fore	7/8/2018 12:00	7/7/2018	2	36	Johnstown	7/8/2018			303	309.5
+fore_2018-07-07_Johnstown	fore	7/8/2018 13:00	7/7/2018	2	37	Johnstown	7/8/2018			313	313
+fore_2018-07-07_Johnstown	fore	7/8/2018 14:00	7/7/2018	2	38	Johnstown	7/8/2018			305	301.7
+fore_2018-07-07_Johnstown	fore	7/8/2018 15:00	7/7/2018	2	39	Johnstown	7/8/2018			281	276.5
+fore_2018-07-07_Johnstown	fore	7/8/2018 16:00	7/7/2018	2	40	Johnstown	7/8/2018			244	247.1
+fore_2018-07-07_Johnstown	fore	7/8/2018 17:00	7/7/2018	2	41	Johnstown	7/8/2018			197	200.9
+fore_2018-07-07_Johnstown	fore	7/8/2018 18:00	7/7/2018	2	42	Johnstown	7/8/2018			141	147.9
+fore_2018-07-07_Johnstown	fore	7/8/2018 19:00	7/7/2018	2	43	Johnstown	7/8/2018			87	88.1
+fore_2018-07-07_Johnstown	fore	7/8/2018 20:00	7/7/2018	2	44	Johnstown	7/8/2018			38	37.6
+fore_2018-07-07_Johnstown	fore	7/8/2018 21:00	7/7/2018	2	45	Johnstown	7/8/2018			5	5.8
+fore_2018-07-07_Johnstown	fore	7/8/2018 22:00	7/7/2018	2	46	Johnstown	7/8/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/8/2018 23:00	7/7/2018	2	47	Johnstown	7/8/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/9/2018 0:00	7/7/2018	2	48	Johnstown	7/9/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/9/2018 1:00	7/7/2018	3	49	Johnstown	7/9/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/9/2018 2:00	7/7/2018	3	50	Johnstown	7/9/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/9/2018 3:00	7/7/2018	3	51	Johnstown	7/9/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/9/2018 4:00	7/7/2018	3	52	Johnstown	7/9/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/9/2018 5:00	7/7/2018	3	53	Johnstown	7/9/2018			4	5.3
+fore_2018-07-07_Johnstown	fore	7/9/2018 6:00	7/7/2018	3	54	Johnstown	7/9/2018			35	23.2
+fore_2018-07-07_Johnstown	fore	7/9/2018 7:00	7/7/2018	3	55	Johnstown	7/9/2018			82	92.5
+fore_2018-07-07_Johnstown	fore	7/9/2018 8:00	7/7/2018	3	56	Johnstown	7/9/2018			133	83
+fore_2018-07-07_Johnstown	fore	7/9/2018 9:00	7/7/2018	3	57	Johnstown	7/9/2018			181	114.6
+fore_2018-07-07_Johnstown	fore	7/9/2018 10:00	7/7/2018	3	58	Johnstown	7/9/2018			223	197.4
+fore_2018-07-07_Johnstown	fore	7/9/2018 11:00	7/7/2018	3	59	Johnstown	7/9/2018			257	278.2
+fore_2018-07-07_Johnstown	fore	7/9/2018 12:00	7/7/2018	3	60	Johnstown	7/9/2018			258	200.6
+fore_2018-07-07_Johnstown	fore	7/9/2018 13:00	7/7/2018	3	61	Johnstown	7/9/2018			239	270.3
+fore_2018-07-07_Johnstown	fore	7/9/2018 14:00	7/7/2018	3	62	Johnstown	7/9/2018			249	303.6
+fore_2018-07-07_Johnstown	fore	7/9/2018 15:00	7/7/2018	3	63	Johnstown	7/9/2018			262	279.5
+fore_2018-07-07_Johnstown	fore	7/9/2018 16:00	7/7/2018	3	64	Johnstown	7/9/2018			235	249.9
+fore_2018-07-07_Johnstown	fore	7/9/2018 17:00	7/7/2018	3	65	Johnstown	7/9/2018			195	200
+fore_2018-07-07_Johnstown	fore	7/9/2018 18:00	7/7/2018	3	66	Johnstown	7/9/2018			142	145.3
+fore_2018-07-07_Johnstown	fore	7/9/2018 19:00	7/7/2018	3	67	Johnstown	7/9/2018			85	85
+fore_2018-07-07_Johnstown	fore	7/9/2018 20:00	7/7/2018	3	68	Johnstown	7/9/2018			36	36.3
+fore_2018-07-07_Johnstown	fore	7/9/2018 21:00	7/7/2018	3	69	Johnstown	7/9/2018			4	4.4
+fore_2018-07-07_Johnstown	fore	7/9/2018 22:00	7/7/2018	3	70	Johnstown	7/9/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/9/2018 23:00	7/7/2018	3	71	Johnstown	7/9/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/10/2018 0:00	7/7/2018	3	72	Johnstown	7/10/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/10/2018 1:00	7/7/2018	4	73	Johnstown	7/10/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/10/2018 2:00	7/7/2018	4	74	Johnstown	7/10/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/10/2018 3:00	7/7/2018	4	75	Johnstown	7/10/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/10/2018 4:00	7/7/2018	4	76	Johnstown	7/10/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/10/2018 5:00	7/7/2018	4	77	Johnstown	7/10/2018			4	5.5
+fore_2018-07-07_Johnstown	fore	7/10/2018 6:00	7/7/2018	4	78	Johnstown	7/10/2018			33	40.7
+fore_2018-07-07_Johnstown	fore	7/10/2018 7:00	7/7/2018	4	79	Johnstown	7/10/2018			70	92.5
+fore_2018-07-07_Johnstown	fore	7/10/2018 8:00	7/7/2018	4	80	Johnstown	7/10/2018			112	148.7
+fore_2018-07-07_Johnstown	fore	7/10/2018 9:00	7/7/2018	4	81	Johnstown	7/10/2018			168	211.4
+fore_2018-07-07_Johnstown	fore	7/10/2018 10:00	7/7/2018	4	82	Johnstown	7/10/2018			202	222.3
+fore_2018-07-07_Johnstown	fore	7/10/2018 11:00	7/7/2018	4	83	Johnstown	7/10/2018			244	225.7
+fore_2018-07-07_Johnstown	fore	7/10/2018 12:00	7/7/2018	4	84	Johnstown	7/10/2018			271	325.4
+fore_2018-07-07_Johnstown	fore	7/10/2018 13:00	7/7/2018	4	85	Johnstown	7/10/2018			274	320.2
+fore_2018-07-07_Johnstown	fore	7/10/2018 14:00	7/7/2018	4	86	Johnstown	7/10/2018			282	308.3
+fore_2018-07-07_Johnstown	fore	7/10/2018 15:00	7/7/2018	4	87	Johnstown	7/10/2018			273	282.1
+fore_2018-07-07_Johnstown	fore	7/10/2018 16:00	7/7/2018	4	88	Johnstown	7/10/2018			247	252
+fore_2018-07-07_Johnstown	fore	7/10/2018 17:00	7/7/2018	4	89	Johnstown	7/10/2018			200	204.2
+fore_2018-07-07_Johnstown	fore	7/10/2018 18:00	7/7/2018	4	90	Johnstown	7/10/2018			143	150.2
+fore_2018-07-07_Johnstown	fore	7/10/2018 19:00	7/7/2018	4	91	Johnstown	7/10/2018			125	91.5
+fore_2018-07-07_Johnstown	fore	7/10/2018 20:00	7/7/2018	4	92	Johnstown	7/10/2018			131.6	37.8
+fore_2018-07-07_Johnstown	fore	7/10/2018 21:00	7/7/2018	4	93	Johnstown	7/10/2018			129	4.6
+fore_2018-07-07_Johnstown	fore	7/10/2018 22:00	7/7/2018	4	94	Johnstown	7/10/2018			93.6	0
+fore_2018-07-07_Johnstown	fore	7/10/2018 23:00	7/7/2018	4	95	Johnstown	7/10/2018			41.8	0
+fore_2018-07-07_Johnstown	fore	7/11/2018 0:00	7/7/2018	4	96	Johnstown	7/11/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/11/2018 1:00	7/7/2018	5	97	Johnstown	7/11/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/11/2018 2:00	7/7/2018	5	98	Johnstown	7/11/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/11/2018 3:00	7/7/2018	5	99	Johnstown	7/11/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/11/2018 4:00	7/7/2018	5	100	Johnstown	7/11/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/11/2018 5:00	7/7/2018	5	101	Johnstown	7/11/2018			0	2.8
+fore_2018-07-07_Johnstown	fore	7/11/2018 6:00	7/7/2018	5	102	Johnstown	7/11/2018			31	38.6
+fore_2018-07-07_Johnstown	fore	7/11/2018 7:00	7/7/2018	5	103	Johnstown	7/11/2018			107	57.2
+fore_2018-07-07_Johnstown	fore	7/11/2018 8:00	7/7/2018	5	104	Johnstown	7/11/2018			213.7	120.1
+fore_2018-07-07_Johnstown	fore	7/11/2018 9:00	7/7/2018	5	105	Johnstown	7/11/2018			330	188.7
+fore_2018-07-07_Johnstown	fore	7/11/2018 10:00	7/7/2018	5	106	Johnstown	7/11/2018			438.8	239.4
+fore_2018-07-07_Johnstown	fore	7/11/2018 11:00	7/7/2018	5	107	Johnstown	7/11/2018			538.1	288.9
+fore_2018-07-07_Johnstown	fore	7/11/2018 12:00	7/7/2018	5	108	Johnstown	7/11/2018			630	312.4
+fore_2018-07-07_Johnstown	fore	7/11/2018 13:00	7/7/2018	5	109	Johnstown	7/11/2018			712.6	320.9
+fore_2018-07-07_Johnstown	fore	7/11/2018 14:00	7/7/2018	5	110	Johnstown	7/11/2018			768.9	304.3
+fore_2018-07-07_Johnstown	fore	7/11/2018 15:00	7/7/2018	5	111	Johnstown	7/11/2018			778	272.7
+fore_2018-07-07_Johnstown	fore	7/11/2018 16:00	7/7/2018	5	112	Johnstown	7/11/2018			725.8	206.5
+fore_2018-07-07_Johnstown	fore	7/11/2018 17:00	7/7/2018	5	113	Johnstown	7/11/2018			624.7	93.8
+fore_2018-07-07_Johnstown	fore	7/11/2018 18:00	7/7/2018	5	114	Johnstown	7/11/2018			494	40.2
+fore_2018-07-07_Johnstown	fore	7/11/2018 19:00	7/7/2018	5	115	Johnstown	7/11/2018			352.9	11.6
+fore_2018-07-07_Johnstown	fore	7/11/2018 20:00	7/7/2018	5	116	Johnstown	7/11/2018			220.9	12
+fore_2018-07-07_Johnstown	fore	7/11/2018 21:00	7/7/2018	5	117	Johnstown	7/11/2018			118	2.4
+fore_2018-07-07_Johnstown	fore	7/11/2018 22:00	7/7/2018	5	118	Johnstown	7/11/2018			57.1	0
+fore_2018-07-07_Johnstown	fore	7/11/2018 23:00	7/7/2018	5	119	Johnstown	7/11/2018			24.6	0
+fore_2018-07-07_Johnstown	fore	7/12/2018 0:00	7/7/2018	5	120	Johnstown	7/12/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/12/2018 1:00	7/7/2018	6	121	Johnstown	7/12/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/12/2018 2:00	7/7/2018	6	122	Johnstown	7/12/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/12/2018 3:00	7/7/2018	6	123	Johnstown	7/12/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/12/2018 4:00	7/7/2018	6	124	Johnstown	7/12/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/12/2018 5:00	7/7/2018	6	125	Johnstown	7/12/2018			0	1.6
+fore_2018-07-07_Johnstown	fore	7/12/2018 6:00	7/7/2018	6	126	Johnstown	7/12/2018			23	19.2
+fore_2018-07-07_Johnstown	fore	7/12/2018 7:00	7/7/2018	6	127	Johnstown	7/12/2018			151.8	69.8
+fore_2018-07-07_Johnstown	fore	7/12/2018 8:00	7/7/2018	6	128	Johnstown	7/12/2018			321.3	119.2
+fore_2018-07-07_Johnstown	fore	7/12/2018 9:00	7/7/2018	6	129	Johnstown	7/12/2018			516.1	206.9
+fore_2018-07-07_Johnstown	fore	7/12/2018 10:00	7/7/2018	6	130	Johnstown	7/12/2018			720.9	221.4
+fore_2018-07-07_Johnstown	fore	7/12/2018 11:00	7/7/2018	6	131	Johnstown	7/12/2018			920.3	252.6
+fore_2018-07-07_Johnstown	fore	7/12/2018 12:00	7/7/2018	6	132	Johnstown	7/12/2018			1099	275.3
+fore_2018-07-07_Johnstown	fore	7/12/2018 13:00	7/7/2018	6	133	Johnstown	7/12/2018			1243.6	187.5
+fore_2018-07-07_Johnstown	fore	7/12/2018 14:00	7/7/2018	6	134	Johnstown	7/12/2018			1348.1	87
+fore_2018-07-07_Johnstown	fore	7/12/2018 15:00	7/7/2018	6	135	Johnstown	7/12/2018			1408.7	104.4
+fore_2018-07-07_Johnstown	fore	7/12/2018 16:00	7/7/2018	6	136	Johnstown	7/12/2018			1421.4	155.9
+fore_2018-07-07_Johnstown	fore	7/12/2018 17:00	7/7/2018	6	137	Johnstown	7/12/2018			1382.1	156.1
+fore_2018-07-07_Johnstown	fore	7/12/2018 18:00	7/7/2018	6	138	Johnstown	7/12/2018			1287	105.9
+fore_2018-07-07_Johnstown	fore	7/12/2018 19:00	7/7/2018	6	139	Johnstown	7/12/2018			1135.7	17.6
+fore_2018-07-07_Johnstown	fore	7/12/2018 20:00	7/7/2018	6	140	Johnstown	7/12/2018			942.6	14.1
+fore_2018-07-07_Johnstown	fore	7/12/2018 21:00	7/7/2018	6	141	Johnstown	7/12/2018			725.8	2.8
+fore_2018-07-07_Johnstown	fore	7/12/2018 22:00	7/7/2018	6	142	Johnstown	7/12/2018			503.2	0
+fore_2018-07-07_Johnstown	fore	7/12/2018 23:00	7/7/2018	6	143	Johnstown	7/12/2018			292.9	0
+fore_2018-07-07_Johnstown	fore	7/13/2018 0:00	7/7/2018	6	144	Johnstown	7/13/2018			113	0
+fore_2018-07-07_Johnstown	fore	7/13/2018 1:00	7/7/2018	7	145	Johnstown	7/13/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/13/2018 2:00	7/7/2018	7	146	Johnstown	7/13/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/13/2018 3:00	7/7/2018	7	147	Johnstown	7/13/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/13/2018 4:00	7/7/2018	7	148	Johnstown	7/13/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/13/2018 5:00	7/7/2018	7	149	Johnstown	7/13/2018			0	2.1
+fore_2018-07-07_Johnstown	fore	7/13/2018 6:00	7/7/2018	7	150	Johnstown	7/13/2018			34	24.5
+fore_2018-07-07_Johnstown	fore	7/13/2018 7:00	7/7/2018	7	151	Johnstown	7/13/2018			188.8	81.3
+fore_2018-07-07_Johnstown	fore	7/13/2018 8:00	7/7/2018	7	152	Johnstown	7/13/2018			377.4	136.4
+fore_2018-07-07_Johnstown	fore	7/13/2018 9:00	7/7/2018	7	153	Johnstown	7/13/2018			584.9	197.7
+fore_2018-07-07_Johnstown	fore	7/13/2018 10:00	7/7/2018	7	154	Johnstown	7/13/2018			796.3	110
+fore_2018-07-07_Johnstown	fore	7/13/2018 11:00	7/7/2018	7	155	Johnstown	7/13/2018			996.7	64.2
+fore_2018-07-07_Johnstown	fore	7/13/2018 12:00	7/7/2018	7	156	Johnstown	7/13/2018			1171	103.6
+fore_2018-07-07_Johnstown	fore	7/13/2018 13:00	7/7/2018	7	157	Johnstown	7/13/2018			1306.5	114.6
+fore_2018-07-07_Johnstown	fore	7/13/2018 14:00	7/7/2018	7	158	Johnstown	7/13/2018			1398.5	133.7
+fore_2018-07-07_Johnstown	fore	7/13/2018 15:00	7/7/2018	7	159	Johnstown	7/13/2018			1444.7	123.1
+fore_2018-07-07_Johnstown	fore	7/13/2018 16:00	7/7/2018	7	160	Johnstown	7/13/2018			1442.6	228.2
+fore_2018-07-07_Johnstown	fore	7/13/2018 17:00	7/7/2018	7	161	Johnstown	7/13/2018			1389.9	203
+fore_2018-07-07_Johnstown	fore	7/13/2018 18:00	7/7/2018	7	162	Johnstown	7/13/2018			1284	143.5
+fore_2018-07-07_Johnstown	fore	7/13/2018 19:00	7/7/2018	7	163	Johnstown	7/13/2018			1125.9	84.9
+fore_2018-07-07_Johnstown	fore	7/13/2018 20:00	7/7/2018	7	164	Johnstown	7/13/2018			929.7	35.4
+fore_2018-07-07_Johnstown	fore	7/13/2018 21:00	7/7/2018	7	165	Johnstown	7/13/2018			713	3.8
+fore_2018-07-07_Johnstown	fore	7/13/2018 22:00	7/7/2018	7	166	Johnstown	7/13/2018			493.1	0
+fore_2018-07-07_Johnstown	fore	7/13/2018 23:00	7/7/2018	7	167	Johnstown	7/13/2018			287.6	0
+fore_2018-07-07_Johnstown	fore	7/14/2018 0:00	7/7/2018	7	168	Johnstown	7/14/2018			114	0
+fore_2018-07-07_Johnstown	fore	7/14/2018 1:00	7/7/2018	8	169	Johnstown	7/14/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/14/2018 2:00	7/7/2018	8	170	Johnstown	7/14/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/14/2018 3:00	7/7/2018	8	171	Johnstown	7/14/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/14/2018 4:00	7/7/2018	8	172	Johnstown	7/14/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/14/2018 5:00	7/7/2018	8	173	Johnstown	7/14/2018			0	3
+fore_2018-07-07_Johnstown	fore	7/14/2018 6:00	7/7/2018	8	174	Johnstown	7/14/2018			35	29.3
+fore_2018-07-07_Johnstown	fore	7/14/2018 7:00	7/7/2018	8	175	Johnstown	7/14/2018			169.6	82
+fore_2018-07-07_Johnstown	fore	7/14/2018 8:00	7/7/2018	8	176	Johnstown	7/14/2018			334.2	136.1
+fore_2018-07-07_Johnstown	fore	7/14/2018 9:00	7/7/2018	8	177	Johnstown	7/14/2018			518.8	186.3
+fore_2018-07-07_Johnstown	fore	7/14/2018 10:00	7/7/2018	8	178	Johnstown	7/14/2018			713.3	248.1
+fore_2018-07-07_Johnstown	fore	7/14/2018 11:00	7/7/2018	8	179	Johnstown	7/14/2018			907.7	286.3
+fore_2018-07-07_Johnstown	fore	7/14/2018 12:00	7/7/2018	8	180	Johnstown	7/14/2018			1092	310.4
+fore_2018-07-07_Johnstown	fore	7/14/2018 13:00	7/7/2018	8	181	Johnstown	7/14/2018			1256.1	313.3
+fore_2018-07-07_Johnstown	fore	7/14/2018 14:00	7/7/2018	8	182	Johnstown	7/14/2018			1390.3	299.4
+fore_2018-07-07_Johnstown	fore	7/14/2018 15:00	7/7/2018	8	183	Johnstown	7/14/2018			1484.8	276.4
+fore_2018-07-07_Johnstown	fore	7/14/2018 16:00	7/7/2018	8	184	Johnstown	7/14/2018			1529.8	243.7
+fore_2018-07-07_Johnstown	fore	7/14/2018 17:00	7/7/2018	8	185	Johnstown	7/14/2018			1515.4	196.7
+fore_2018-07-07_Johnstown	fore	7/14/2018 18:00	7/7/2018	8	186	Johnstown	7/14/2018			1432	140.9
+fore_2018-07-07_Johnstown	fore	7/14/2018 19:00	7/7/2018	8	187	Johnstown	7/14/2018			1275.2	86.4
+fore_2018-07-07_Johnstown	fore	7/14/2018 20:00	7/7/2018	8	188	Johnstown	7/14/2018			1062.7	36.5
+fore_2018-07-07_Johnstown	fore	7/14/2018 21:00	7/7/2018	8	189	Johnstown	7/14/2018			817.5	3.5
+fore_2018-07-07_Johnstown	fore	7/14/2018 22:00	7/7/2018	8	190	Johnstown	7/14/2018			562.7	0
+fore_2018-07-07_Johnstown	fore	7/14/2018 23:00	7/7/2018	8	191	Johnstown	7/14/2018			321.5	0
+fore_2018-07-07_Johnstown	fore	7/15/2018 0:00	7/7/2018	8	192	Johnstown	7/15/2018			117	0
+fore_2018-07-07_Johnstown	fore	7/15/2018 1:00	7/7/2018	9	193	Johnstown	7/15/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/15/2018 2:00	7/7/2018	9	194	Johnstown	7/15/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/15/2018 3:00	7/7/2018	9	195	Johnstown	7/15/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/15/2018 4:00	7/7/2018	9	196	Johnstown	7/15/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/15/2018 5:00	7/7/2018	9	197	Johnstown	7/15/2018			0	3.5
+fore_2018-07-07_Johnstown	fore	7/15/2018 6:00	7/7/2018	9	198	Johnstown	7/15/2018			29	21.1
+fore_2018-07-07_Johnstown	fore	7/15/2018 7:00	7/7/2018	9	199	Johnstown	7/15/2018			182.8	50.9
+fore_2018-07-07_Johnstown	fore	7/15/2018 8:00	7/7/2018	9	200	Johnstown	7/15/2018			368.2	58.9
+fore_2018-07-07_Johnstown	fore	7/15/2018 9:00	7/7/2018	9	201	Johnstown	7/15/2018			572	140.4
+fore_2018-07-07_Johnstown	fore	7/15/2018 10:00	7/7/2018	9	202	Johnstown	7/15/2018			781.6	90.7
+fore_2018-07-07_Johnstown	fore	7/15/2018 11:00	7/7/2018	9	203	Johnstown	7/15/2018			983.9	112.5
+fore_2018-07-07_Johnstown	fore	7/15/2018 12:00	7/7/2018	9	204	Johnstown	7/15/2018			1166	94.2
+fore_2018-07-07_Johnstown	fore	7/15/2018 13:00	7/7/2018	9	205	Johnstown	7/15/2018			1316.2	158.5
+fore_2018-07-07_Johnstown	fore	7/15/2018 14:00	7/7/2018	9	206	Johnstown	7/15/2018			1427.4	128.4
+fore_2018-07-07_Johnstown	fore	7/15/2018 15:00	7/7/2018	9	207	Johnstown	7/15/2018			1493.6	98.9
+fore_2018-07-07_Johnstown	fore	7/15/2018 16:00	7/7/2018	9	208	Johnstown	7/15/2018			1508.8	65.8
+fore_2018-07-07_Johnstown	fore	7/15/2018 17:00	7/7/2018	9	209	Johnstown	7/15/2018			1466.9	46.6
+fore_2018-07-07_Johnstown	fore	7/15/2018 18:00	7/7/2018	9	210	Johnstown	7/15/2018			1362	27.3
+fore_2018-07-07_Johnstown	fore	7/15/2018 19:00	7/7/2018	9	211	Johnstown	7/15/2018			1192.8	9.7
+fore_2018-07-07_Johnstown	fore	7/15/2018 20:00	7/7/2018	9	212	Johnstown	7/15/2018			976.6	6.2
+fore_2018-07-07_Johnstown	fore	7/15/2018 21:00	7/7/2018	9	213	Johnstown	7/15/2018			735.6	0.8
+fore_2018-07-07_Johnstown	fore	7/15/2018 22:00	7/7/2018	9	214	Johnstown	7/15/2018			491.8	0
+fore_2018-07-07_Johnstown	fore	7/15/2018 23:00	7/7/2018	9	215	Johnstown	7/15/2018			267.2	0
+fore_2018-07-07_Johnstown	fore	7/16/2018 0:00	7/7/2018	9	216	Johnstown	7/16/2018			84	0
+fore_2018-07-07_Johnstown	fore	7/16/2018 1:00	7/7/2018	10	217	Johnstown	7/16/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/16/2018 2:00	7/7/2018	10	218	Johnstown	7/16/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/16/2018 3:00	7/7/2018	10	219	Johnstown	7/16/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/16/2018 4:00	7/7/2018	10	220	Johnstown	7/16/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/16/2018 5:00	7/7/2018	10	221	Johnstown	7/16/2018			0	0.4
+fore_2018-07-07_Johnstown	fore	7/16/2018 6:00	7/7/2018	10	222	Johnstown	7/16/2018			16	9.3
+fore_2018-07-07_Johnstown	fore	7/16/2018 7:00	7/7/2018	10	223	Johnstown	7/16/2018			110.1	31.3
+fore_2018-07-07_Johnstown	fore	7/16/2018 8:00	7/7/2018	10	224	Johnstown	7/16/2018			217.6	60.1
+fore_2018-07-07_Johnstown	fore	7/16/2018 9:00	7/7/2018	10	225	Johnstown	7/16/2018			334.7	98.5
+fore_2018-07-07_Johnstown	fore	7/16/2018 10:00	7/7/2018	10	226	Johnstown	7/16/2018			457.6	76.3
+fore_2018-07-07_Johnstown	fore	7/16/2018 11:00	7/7/2018	10	227	Johnstown	7/16/2018			582.6	165.1
+fore_2018-07-07_Johnstown	fore	7/16/2018 12:00	7/7/2018	10	228	Johnstown	7/16/2018			706	120.9
+fore_2018-07-07_Johnstown	fore	7/16/2018 13:00	7/7/2018	10	229	Johnstown	7/16/2018			823.7	148.9
+fore_2018-07-07_Johnstown	fore	7/16/2018 14:00	7/7/2018	10	230	Johnstown	7/16/2018			930.1	220.2
+fore_2018-07-07_Johnstown	fore	7/16/2018 15:00	7/7/2018	10	231	Johnstown	7/16/2018			1019.4	224.7
+fore_2018-07-07_Johnstown	fore	7/16/2018 16:00	7/7/2018	10	232	Johnstown	7/16/2018			1085.7	148.1
+fore_2018-07-07_Johnstown	fore	7/16/2018 17:00	7/7/2018	10	233	Johnstown	7/16/2018			1123.2	42.6
+fore_2018-07-07_Johnstown	fore	7/16/2018 18:00	7/7/2018	10	234	Johnstown	7/16/2018			1126	51.3
+fore_2018-07-07_Johnstown	fore	7/16/2018 19:00	7/7/2018	10	235	Johnstown	7/16/2018			1088.3	13.4
+fore_2018-07-07_Johnstown	fore	7/16/2018 20:00	7/7/2018	10	236	Johnstown	7/16/2018			1004.6	4.4
+fore_2018-07-07_Johnstown	fore	7/16/2018 21:00	7/7/2018	10	237	Johnstown	7/16/2018			869.5	1.7
+fore_2018-07-07_Johnstown	fore	7/16/2018 22:00	7/7/2018	10	238	Johnstown	7/16/2018			677.4	0
+fore_2018-07-07_Johnstown	fore	7/16/2018 23:00	7/7/2018	10	239	Johnstown	7/16/2018			423.1	0
+fore_2018-07-07_Johnstown	fore	7/17/2018 0:00	7/7/2018	10	240	Johnstown	7/17/2018			101	0
+fore_2018-07-07_Johnstown	fore	7/17/2018 0:00	7/7/2018	11	241	Johnstown	7/17/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/17/2018 1:00	7/7/2018	11	242	Johnstown	7/17/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/17/2018 2:00	7/7/2018	11	243	Johnstown	7/17/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/17/2018 3:00	7/7/2018	11	244	Johnstown	7/17/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/17/2018 4:00	7/7/2018	11	245	Johnstown	7/17/2018			1	1
+fore_2018-07-07_Johnstown	fore	7/17/2018 5:00	7/7/2018	11	246	Johnstown	7/17/2018			10.4	10.4
+fore_2018-07-07_Johnstown	fore	7/17/2018 6:00	7/7/2018	11	247	Johnstown	7/17/2018			28.6	28.6
+fore_2018-07-07_Johnstown	fore	7/17/2018 7:00	7/7/2018	11	248	Johnstown	7/17/2018			42.2	42.2
+fore_2018-07-07_Johnstown	fore	7/17/2018 8:00	7/7/2018	11	249	Johnstown	7/17/2018			74.2	74.2
+fore_2018-07-07_Johnstown	fore	7/17/2018 9:00	7/7/2018	11	250	Johnstown	7/17/2018			162.8	162.8
+fore_2018-07-07_Johnstown	fore	7/17/2018 10:00	7/7/2018	11	251	Johnstown	7/17/2018			202.1	202.1
+fore_2018-07-07_Johnstown	fore	7/17/2018 11:00	7/7/2018	11	252	Johnstown	7/17/2018			200.7	200.7
+fore_2018-07-07_Johnstown	fore	7/17/2018 12:00	7/7/2018	11	253	Johnstown	7/17/2018			237.1	237.1
+fore_2018-07-07_Johnstown	fore	7/17/2018 13:00	7/7/2018	11	254	Johnstown	7/17/2018			229.5	229.5
+fore_2018-07-07_Johnstown	fore	7/17/2018 14:00	7/7/2018	11	255	Johnstown	7/17/2018			204.5	204.5
+fore_2018-07-07_Johnstown	fore	7/17/2018 15:00	7/7/2018	11	256	Johnstown	7/17/2018			192.7	192.7
+fore_2018-07-07_Johnstown	fore	7/17/2018 16:00	7/7/2018	11	257	Johnstown	7/17/2018			134.8	134.8
+fore_2018-07-07_Johnstown	fore	7/17/2018 17:00	7/7/2018	11	258	Johnstown	7/17/2018			69.6	69.6
+fore_2018-07-07_Johnstown	fore	7/17/2018 18:00	7/7/2018	11	259	Johnstown	7/17/2018			46.9	46.9
+fore_2018-07-07_Johnstown	fore	7/17/2018 19:00	7/7/2018	11	260	Johnstown	7/17/2018			20.8	20.8
+fore_2018-07-07_Johnstown	fore	7/17/2018 20:00	7/7/2018	11	261	Johnstown	7/17/2018			1.9	1.9
+fore_2018-07-07_Johnstown	fore	7/17/2018 21:00	7/7/2018	11	262	Johnstown	7/17/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/17/2018 22:00	7/7/2018	11	263	Johnstown	7/17/2018			0	0
+fore_2018-07-07_Johnstown	fore	7/17/2018 23:00	7/7/2018	11	264	Johnstown	7/17/2018			0	0
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											
+											

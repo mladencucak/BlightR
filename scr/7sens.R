@@ -54,12 +54,12 @@ par_set <-
   unlist() %>% as.character()
 
 done <- 
-list.files(here::here("out", "eval", "eval")) %>% 
+  list.files(here::here("out", "eval", "eval")) %>% 
   str_replace(".Rdata","")
 
 
 par_set <- 
-par_set[!str_detect(par_set, "0l")]
+  par_set[!str_detect(par_set, "0l")]
 par_set[par_set!=done]
 
 
@@ -80,42 +80,42 @@ for (i in par_set_run){
   # x <- lss[[1]]
   # run_type <- "model"
   
-cl <- makeCluster(detectCores())
-clusterExport(cl, c("BlightR","IrishRulesModel", "RunModel",
-                    "TPPFun", "ControlFreqFun", 
-                    "ExtractCol",
-                    "i"))
-
-clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
-
+  cl <- makeCluster(detectCores())
+  clusterExport(cl, c("BlightR","IrishRulesModel", "RunModel",
+                      "TPPFun", "ControlFreqFun", 
+                      "ExtractCol",
+                      "i"))
   
-out_ls <-
-  # testing 
-  # pblapply(lss[1:2], function(x)
-  pblapply(lss, function(x)
+  clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
+  
+  
+  out_ls <-
+    # testing 
+    # pblapply(lss[1:2], function(x)
+    pblapply(lss, function(x)
       RunModel(x,
+               model_parameters = i,
+               run_type = "model") , cl = cl)
+  # testing 
+  # out_ls[[1]] %>% view()
+  
+  out_trt <- pblapply(wth_ls, function(x)
+    RunModel(x,
              model_parameters = i,
-             run_type = "model") , cl = cl)
-# testing 
-# out_ls[[1]] %>% view()
-
-out_trt <- pblapply(wth_ls, function(x)
-  RunModel(x,
-           model_parameters = i,
-           run_type = "wth"),
-  cl = cl)
-
-res_lss <- list(out_ls, out_trt)
-save(res_lss, file = here::here("out","eval", "out", paste0(i,".Rdata")))
-
-
-
-gc()
-
-print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
-Sys.sleep(10)
-
-
+             run_type = "wth"),
+    cl = cl)
+  
+  res_lss <- list(out_ls, out_trt)
+  save(res_lss, file = here::here("out","eval", "out", paste0(i,".Rdata")))
+  
+  
+  
+  gc()
+  
+  print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
+  Sys.sleep(10)
+  
+  
 }
 
 
@@ -140,27 +140,48 @@ print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"),
 #Diagnostic performance
 ###############################################################
 
+source(here::here("scr","lib",  "pkg.R"))
 
-par_set_run <- 
+source(here::here("scr", "lib", "funs.R"))
+source(here::here("scr", "lib", "DiagFuns.R"))
+
+
+
+par_set <- 
   readxl::read_xlsx( 
     here::here("scr", "model", "par_eval", "par_eval.xlsx"))[,"met_set"] %>% 
   unlist() %>% as.character()
 
+done <- 
+  list.files(here::here("out", "eval", "diag_fin")) %>% 
+  str_replace(".Rdata","")
 
 
-###################################################################################
-# Run eval
-###################################################################################
+# par_set <- 
+#   par_set[!str_detect(par_set, "0l")]
+# par_set[par_set!=done]
+
+
+if(length(done)== 0){
+  par_set_run <- par_set
+}else{
+  par_set_run <- par_set[par_set!=done]
+}
+
+
 starttime <- Sys.time()
 
-ls <- list()
+# ls <- list()
+cl <- makeCluster(detectCores())
+clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 
 for (i in par_set_run){
   #  i <-  par_set_run[55]
   # x <- lss[[1]]
   # run_type <- "model"
   
-  cl <- makeCluster(detectCores())
+  
+  
   
   res_lss <- 
     get(load( file = here::here("out","eval", "out", paste0(i,".Rdata"))))
@@ -201,18 +222,16 @@ for (i in par_set_run){
   
   
   
-  rm(Cutoffs,trt_df,out_ls, out_trt,duration_of_season)
+  rm(Cutoffs,trt_df,duration_of_season)
   
   ###################################################
   #Evaluation
   ###################################################
-  
   clusterExport(cl, c("res_lss",
                       "warn_t_df",
                       "warning_thresholds",
                       "ControlFreqFun", 
                       "TPPFun"))
-  clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
   
   tpp_ev_ls <-
     pbapply::pblapply(warning_thresholds, function(x) {
@@ -400,10 +419,13 @@ for (i in par_set_run){
   
   fin$eval <- i
   
-  ls[[i]] <- fin
+  save(fin, file = here::here("out","eval", "diag_fin", paste0(i,".Rdata")))
   
   
-  rm(cl, p1, p2, eval_long )
+  
+  gc()
+  Sys.sleep(5)
+  rm( p1, p2, eval_long )
   print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
   
   
@@ -416,12 +438,12 @@ print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"),
 
 
 finalres <- 
-ls %>% 
-  bind_rows() 
+  ls %>%
+  bind_rows()
 
-  save(finalres, file = here::here("out","eval", "final_diag.Rdata"))
+save(finalres, file = here::here("out", "eval", "final_diag.Rdata"))
 
- 
+
 
 
 
@@ -439,9 +461,9 @@ ls %>%
 
 
 ###############################################################
-#Diagnostic performance 
 ###############################################################
-
+#Diagnostic performance
+###############################################################
 par_set <- 
   readxl::read_xlsx( 
     here::here("scr", "model", "par_eval", "par_eval.xlsx"))[,"met_set"] %>% 
@@ -546,20 +568,20 @@ for (i in seq_along(par_set[par_set %in% done])){
   print(paste(i, "of", length(par_set)))
   
 }
-  
+
 list.files(here::here("out","eval", "eval_long"))
-           
-           
+
+
 #Load the evaluation data calculate perfomance 
 ls <- list()
 for(i in seq_along(par_set)){
   fundf <- 
-get(load( here::here("out","eval", "eval", paste0(par_set[i],".Rdata"))))
+    get(load( here::here("out","eval", "eval", paste0(par_set[i],".Rdata"))))
   eval_long <- 
-  EvalTable(fundf[[1]], fundf[[2]])
+    EvalTable(fundf[[1]], fundf[[2]])
   
-
- 
+  
+  
 }
 
 par_set
@@ -570,16 +592,16 @@ sapply(par_set, function(x)
   
   ifelse(str_detect(x,"-"), substring(x, nchar(x)-2), substring(x, nchar(x)-1))
   
-  ) %>% unlist
+) %>% unlist
 
 substring(x, nchar(x)-2)
 
 ls[98]
 
 evaldf <- 
-ls %>% 
+  ls %>% 
   bind_rows() %>% 
-   filter(model == "risk_mi") %>% 
+  filter(model == "risk_mi") %>% 
   dplyr:: filter(eval !="default") %>% 
   group_by(eval) %>%
   mutate(
@@ -592,13 +614,101 @@ ls %>%
   )
 
 unique(evaldf$par)  
-  
+
 ggplot(evaldf)+
-   geom_line(aes(x = lev, pAUC ))+
+  geom_line(aes(x = lev, pAUC ))+
   facet_wrap(~par)
+facet_grid(model~par)
+
+
+
+
+
+
+
+
+
+
+###############################################################
+#Diagnostic performance
+###############################################################
+evaldf <-
+  get(load(file = here::here("out", "eval", "final_diag.Rdata")))
+
+par_set <-
+  readxl::read_xlsx(here::here("scr", "model", "par_eval", "par_eval.xlsx"))[, "met_set"] %>%
+  unlist() %>% as.character()
+
+#Load the evaluation data calculate perfomance
+ls <- list()
+for (i in seq_along(par_set)) {
+  fundf <-
+    get(load(here::here("out", "eval", "diag_fin", paste0(par_set[i], ".Rdata"))))
+  ls[[i]] <- fundf
+}
+
+par_set
+
+str_detect(par_set,"-")
+
+sapply(par_set, function(x) 
+  
+  ifelse(str_detect(x,"-"), substring(x, nchar(x)-2), substring(x, nchar(x)-1))
+  
+) %>% unlist
+
+substring(x, nchar(x)-2)
+
+ls[98]
+
+evaldf <- 
+  ls %>% 
+  bind_rows() %>% 
+  # filter(model == "risk_mi") %>% 
+  dplyr:: filter(eval !="default") %>% 
+  group_by(eval) %>%
+  mutate(
+    lev = ifelse(str_detect(eval,"-"), 
+                 substring(eval, nchar(eval)-2,nchar(eval)-1), 
+                 substring(eval, nchar(eval)-1,nchar(eval))),
+    lev = as.numeric(gsub("l", "", lev)),
+    # stage = ifelse(str_detect(eval,"spor"))
+    par = ifelse(str_detect(eval,"-"), substring(eval, 1,nchar(eval)-3), substring(eval, 1, nchar(eval)-2))
+  )
+
+unique(evaldf$par)  
+
+ggplot(evaldf)+
+  geom_line(aes(x = lev, pAUC ))+
+  # facet_wrap(model~par)
   facet_grid(model~par)
-  
-  
+
+ggplot(evaldf)+
+  geom_smooth(aes(x = lev, pAUC , color = model, group = model), se = FALSE, span =2,method = 'loess')+
+  facet_wrap(~par)
+facet_grid(model~par)
+
+
+ggplot(evaldf)+
+  geom_smooth(aes(x = lev, maxTPR    , color = model, group = model), se = FALSE, span =2,method = 'loess')+
+  facet_wrap(~par)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
