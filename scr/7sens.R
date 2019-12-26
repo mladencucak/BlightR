@@ -172,11 +172,12 @@ if(length(done)== 0){
 starttime <- Sys.time()
 
 # ls <- list()
-cl <- makeCluster(detectCores())
+cl <- makeCluster(detectCores()-2)
 clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 
 for (i in par_set_run){
   #  i <-  par_set_run[55]
+  # i <-  "ShapeSpor4l" 
   # x <- lss[[1]]
   # run_type <- "model"
   
@@ -256,6 +257,10 @@ for (i in par_set_run){
   eval_lss <- list(tpp_ev_ls, trt_ev_ls)
   save(eval_lss, file = here::here("out","eval", "eval", paste0(i,".Rdata")))
   
+  
+  
+  
+  
   # Get the evaluation data in long format
   eval_long <- 
     EvalTable(tpp_ev_ls, trt_ev_ls)
@@ -273,7 +278,7 @@ for (i in par_set_run){
     gsub("defMIR", "IR",  .) 
   
   eval_long$model <- 
-    factor(eval_long$model, levels = c(  "R", "Rsi","Rmi", "IR","MIR" ))
+    factor(eval_long$model, levels = c(  "R", "Rsi","Rmi"))
   
   #Set  color scheme
   
@@ -398,20 +403,37 @@ for (i in par_set_run){
     bind_rows()
   
   # CAlculate the partial area under the curve and other diag perfomance indicatora
+  
+  fundf <- 
+    eval_longer %>% 
+    drop_na() %>% 
+    # filter(sens>= 0.80) %>% 
+    filter(model == "Rsi")
+  
   fin <- 
     eval_longer %>% 
     drop_na() %>% 
-    filter(sens>= 0.85) %>% 
+    # filter(sens>= 0.80) %>% 
     split(., .$model) %>% 
     lapply(., function(fundf){
+      dff <- 
       fundf%>% 
+        filter(sens>= 0.80) %>% 
         summarise(model = unique(model),
                   out_miss = paste0(abs(362* max(sens) -362), "/362"),
                   maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
-                  pAUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
-                  ff = pracma::trapz(c( rev(spec), 1), c(rev(sens)-.8, .2))
+                  pAUCh = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
+                  pAUC = pracma::trapz(c( rev(spec), 1),
+                                       c(rev(sens),max(sens) )-.8)
         )
+      dfff<- 
+      fundf%>% 
+        summarise(model = unique(model),
+                  AUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
+        )
+      left_join(dff,dfff, by = "model")
       
+      # qplot( c( rev(fundf$spec), 1),c(rev(fundf$sens),max(fundf$sens) )-.8)
     }
     ) %>% 
     bind_rows() %>% 
@@ -469,156 +491,86 @@ par_set <-
     here::here("scr", "model", "par_eval", "par_eval.xlsx"))[,"met_set"] %>% 
   unlist() %>% as.character()
 
-done <- 
-  list.files(here::here("out", "eval", "eval_long")) %>% 
-  str_replace(".Rdata","")
 
 
-par_set <- 
-  par_set[!str_detect(par_set, "0l")]
-par_set[par_set!=done]
 
+lss <- list()
 
-ls <- list()
+for (i in seq_along(par_set)){
 
-
-for (i in seq_along(par_set[par_set %in% done])){
-  
-  
-  eval_lss <- 
-    get(load( here::here("out","eval", "eval_long", paste0(par_set[par_set %in% done][i],".Rdata"))))
-  
-  tpp_ev_ls <-  eval_lss[[1]]
-  trt_ev_ls <-  eval_lss[[2]]
-  
-  # Get the evaluation data in long format
-  eval_long <- 
-    EvalTable(tpp_ev_ls, trt_ev_ls)
-  
-  
   eval_longer <- 
-    split(eval_long, eval_long$model) %>% 
-    
-    lapply(., function(fundf){
-      
-      for(prop_tpp in c(0.8, 0.85, 0.9)){
-        
-        if(fundf$sens[1] >prop_tpp){
-          # find the two nearest warning thresholds to the accepted decision threshold
-          closest_high <- 
-            fundf$sens[fundf$sens>prop_tpp] %>% tail(1)
-          
-          closest_low <-
-            fundf$sens[which(fundf$sens<prop_tpp)][1]
-          
-          dff <- fundf[fundf$sens >= closest_low& fundf$sens <= closest_high,]
-          spec <- dff$spec %>% unlist()
-          sens <- dff$sens %>% unlist
-          
-          value <- 
-            predict(lm(spec ~ sens ), data.frame(sens = prop_tpp))
-          
-          which(fundf$sens<prop_tpp)[1]
-          fundf <- 
-            add_row(fundf, 
-                    warning_thres = prop_tpp,
-                    model = unique(fundf$model),
-                    spec = value, 
-                    sens = prop_tpp,
-                    .before = which(fundf$sens<prop_tpp)[1])
-        }else{
-          fundf <- 
-            add_row(fundf, 
-                    warning_thres = prop_tpp,
-                    model = unique(fundf$model),
-                    spec = NA, 
-                    sens = prop_tpp,
-                    .before = 1)
-        }
-      }
-      return(fundf)
-    }
-    ) %>% 
-    bind_rows()
+    get(load( here::here("out","eval", "eval_long", 
+                         paste0(par_set[i],".Rdata"))))
   
-  # CAlculate the partial area under the curve and other diag perfomance indicatora
+  eval_longer$model <- 
+    factor(eval_longer$model, levels = c(  "R", "Rsi","Rmi"))
+  
+  # CAlculate the partial area under the curve and other diag
+  # perfomance indicatora
+  
+
   fin <- 
     eval_longer %>% 
     drop_na() %>% 
-    filter(sens>= 0.85) %>% 
+    # mutate()
+    # filter(sens>= 0.80) %>% 
     split(., .$model) %>% 
     lapply(., function(fundf){
-      fundf%>% 
+      
+      if( max(fundf$sens)>.8){
+      dff <- 
+        fundf%>% 
+        filter(sens>= 0.80) %>% 
         summarise(model = unique(model),
                   out_miss = paste0(abs(362* max(sens) -362), "/362"),
                   maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
-                  pAUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
-                  ff = pracma::trapz(c( rev(spec), 1), c(rev(sens)-.8, .2))
+                  pAUCh = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
+                  pAUC = pracma::trapz(c( rev(spec), 1),
+                                       c(rev(sens),max(sens) )-.8)
         )
+      } else {
+        dff <- 
+          fundf%>% 
+          summarise(model = unique(model),
+                    out_miss = paste0(abs(362* max(sens) -362), "/362"),
+                    maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
+                    pAUCh = 0,
+                    pAUC = 0
+          )
+      }
+      dfff<- 
+        fundf%>% 
+        summarise(model = unique(model),
+                  AUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
+        )
+      left_join(dff,dfff, by = "model")
       
+      # qplot( c( rev(fundf$spec), 1),c(rev(fundf$sens),max(fundf$sens) )-.8)
     }
     ) %>% 
     bind_rows() %>% 
     arrange(desc(pAUC))
   
-  fin$eval <- par_set[i]
+  fin$eval <- par_set[[i]]
   
-  ls[[i]] <- fin
-  print(head(fin, 1))
-  print(paste(i, "of", length(par_set)))
-  
-}
-
-list.files(here::here("out","eval", "eval_long"))
-
-
-#Load the evaluation data calculate perfomance 
-ls <- list()
-for(i in seq_along(par_set)){
-  fundf <- 
-    get(load( here::here("out","eval", "eval", paste0(par_set[i],".Rdata"))))
-  eval_long <- 
-    EvalTable(fundf[[1]], fundf[[2]])
+  save(fin, file = here::here("out","eval", "diag_fin", 
+                              paste0(par_set[[i]],".Rdata")))
   
   
+  lss[[i]] <- fin
+  gc()
+  Sys.sleep(5)
+  rm( p1, p2, eval_long )
+  print(paste0(i," of ", length(par_set)," :",
+               time_length(Sys.time() - starttime, unit = "minutes") %>% round(2)))
   
 }
 
-par_set
 
-str_detect(par_set,"-")
+print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"), 3)))
 
-sapply(par_set, function(x) 
-  
-  ifelse(str_detect(x,"-"), substring(x, nchar(x)-2), substring(x, nchar(x)-1))
-  
-) %>% unlist
+# source(here::here("scr", "lib", "GitCommit.R" ))
 
-substring(x, nchar(x)-2)
-
-ls[98]
-
-evaldf <- 
-  ls %>% 
-  bind_rows() %>% 
-  filter(model == "risk_mi") %>% 
-  dplyr:: filter(eval !="default") %>% 
-  group_by(eval) %>%
-  mutate(
-    lev = ifelse(str_detect(eval,"-"), 
-                 substring(eval, nchar(eval)-2,nchar(eval)-1), 
-                 substring(eval, nchar(eval)-1,nchar(eval))),
-    lev = as.numeric(gsub("l", "", lev)),
-    # stage = ifelse(str_detect(eval,"spor"))
-    par = ifelse(str_detect(eval,"-"), substring(eval, 1,nchar(eval)-3), substring(eval, 1, nchar(eval)-2))
-  )
-
-unique(evaldf$par)  
-
-ggplot(evaldf)+
-  geom_line(aes(x = lev, pAUC ))+
-  facet_wrap(~par)
-facet_grid(model~par)
 
 
 
@@ -632,6 +584,12 @@ facet_grid(model~par)
 ###############################################################
 #Diagnostic performance
 ###############################################################
+
+source(here::here("scr","lib",  "pkg.R"))
+library("readxl")
+source(here::here("scr", "lib", "funs.R"))
+
+
 evaldf <-
   get(load(file = here::here("out", "eval", "final_diag.Rdata")))
 
@@ -662,7 +620,7 @@ substring(x, nchar(x)-2)
 ls[98]
 
 evaldf <- 
-  ls %>% 
+  lss %>% 
   bind_rows() %>% 
   # filter(model == "risk_mi") %>% 
   dplyr:: filter(eval !="default") %>% 
@@ -672,11 +630,16 @@ evaldf <-
                  substring(eval, nchar(eval)-2,nchar(eval)-1), 
                  substring(eval, nchar(eval)-1,nchar(eval))),
     lev = as.numeric(gsub("l", "", lev)),
-    # stage = ifelse(str_detect(eval,"spor"))
+    maxTPR = as.numeric(gsub(" %", "", maxTPR)),
+    stage = ifelse(str_detect(eval,"Spor"), "Sporulation", 
+                   ifelse(str_detect(eval,"Inf"), "Infection",
+                          ifelse(str_detect(eval,"B"), "Mortality","time"))),
+    stage = factor(stage, levels = c("Infection","Sporulation","Mortality", "time")),
     par = ifelse(str_detect(eval,"-"), substring(eval, 1,nchar(eval)-3), substring(eval, 1, nchar(eval)-2))
   )
 
 unique(evaldf$par)  
+unique(evaldf$stage)  
 
 ggplot(evaldf)+
   geom_line(aes(x = lev, pAUC ))+
@@ -684,14 +647,31 @@ ggplot(evaldf)+
   facet_grid(model~par)
 
 ggplot(evaldf)+
-  geom_smooth(aes(x = lev, pAUC , color = model, group = model), se = FALSE, span =2,method = 'loess')+
-  facet_wrap(~par)
-facet_grid(model~par)
+  geom_smooth(aes(x = lev, pAUC , color = model, group = model), se = FALSE, span =1,method = 'loess')+
+  facet_wrap(par~stage)+
+  labs(color = "Model:",
+       xlab = "Level")+
+  theme_article()+
+  theme(legend.position = "top")+
+  ggsave(filename = here::here("out", "eval", "diag_graph", "model_eval.png"),
+         width = 8.5, height = 9, units = "in")
+
+shell.exec(here::here("out", "eval", "diag_graph", "model_eval.png"))
+
+
 
 
 ggplot(evaldf)+
-  geom_smooth(aes(x = lev, maxTPR    , color = model, group = model), se = FALSE, span =2,method = 'loess')+
-  facet_wrap(~par)
+  geom_smooth(aes(x = lev, maxTPR , color = model, group = model), se = FALSE, span =.75,method = 'loess')+
+  facet_wrap(stage~par)+
+  theme_article()+
+  labs(color = "Model:",
+       xlab = "Level")+
+  theme(legend.position = "top")+
+  ggsave(filename = here::here("out", "eval", "diag_graph", "maxTPR.png"),
+         width = 9, height = 8, units = "in")
+
+shell.exec(here::here("out", "eval", "diag_graph", "maxTPR.png"))
 
 
 

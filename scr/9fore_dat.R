@@ -327,7 +327,9 @@ data_ls <-
               .export = c("obs_df"),
               .packages = c("tidyverse", "lubridate", "stringr", "padr", "zoo", "imputeTS")) %dopar%
       {
-        # ec_date = time[90]
+        #Testing        
+        # ec_date <- time[287]
+        # station <- stations[1]
         date_range <- 
           seq.Date(ec_date-1, ec_date+10, by = "day")
 
@@ -336,9 +338,6 @@ data_ls <-
                    obs_df[["short_date"]] %in% date_range,
                  "short_date"] %>% unique() %>% unlist %>%  length()
 
-        #Testing        
-        # ec_date <- time[287]
-        # station <- stations[1]
        
         date_string <- paste0(str_replace_all(ec_date, "-",""), "")
         #Some forecast files are missing 
@@ -368,7 +367,21 @@ data_ls <-
           ec0610day$date <- as.POSIXct(ec0610day$date, tz = "UTC")
           colnames(ec0305day) <- colnames(ec0103day)
           colnames(ec0610day) <- colnames(ec0103day)
-          fore_df <- bind_rows(ec0103day, ec0305day, ec0610day) %>% tbl_df()
+
+          #Reduce for an hour, to be closer to the mmid point of the three hours/six hours
+          ec0305day$date <- ec0305day$date-3600
+          ec0610day$date <- ec0610day$date - c(3600*3)
+          
+          
+          fore_df <- bind_rows(ec0103day, ec0305day, ec0610day ) %>% tbl_df()
+          
+          addrow <- 
+          fore_df[nrow(fore_df),] %>% 
+            mutate(date = date + 3*3600) 
+          addrow[, 2:length(addrow)] <- NA  
+          
+          fore_df <- 
+            bind_rows(fore_df,addrow) 
           
           #add missing hours
           fore_df <- padr::pad(fore_df, by = "date",interval = "hour")
@@ -400,9 +413,9 @@ data_ls <-
           fore_df$rhum <- round(na.spline(fore_df$rhum, na.rm = FALSE, maxgap = infil_gap),0)
           fore_df$rhum  <- sapply(fore_df$rhum, function(x) ifelse(x>100, x<-100, x))
           fore_df$rain <- round(na_replace(fore_df$rain, 0),1)
-          fore_df$sol_rad <- round(na.spline(fore_df$sol_rad, na.rm = FALSE, maxgap = infil_gap),1)
-          fore_df$sol_rad <- ifelse(fore_df$sol_rad < 0, 0, fore_df$sol_rad)
-          
+          fore_df$sol_rad <- na_replace(fore_df$sol_rad, 0)
+
+                    
           fore_df$wdsp <- round(na.spline(fore_df$wdsp, na.rm = FALSE, maxgap = infil_gap),0)
 
           fore_df <- arrange(fore_df, date)          
@@ -513,7 +526,7 @@ length(data_ls)
 sapply(data_ls, function(x) all(names(x)== names(data_ls[[1]]))) %>% all()
 names(data_ls[[1]])
 
-# save(data_ls, file =here::here("out", "fore", "fore_dat_full.Rdata"))
+save(data_ls, file =here::here("out", "fore", "fore_dat_full.Rdata"))
 
 
 
@@ -555,6 +568,247 @@ data_ls <-
     return(x)
   })
 
+#####
+#convert from w/m2 to MJ/m2
+#conversion https://cliflo-niwa.niwa.co.nz/pls/niwp/wh.do_help?id=ls_rad
+data_ls <- 
+  lapply(data_ls, function( fundf){
+    fundf$sol_rad <- fundf$sol_rad * 0.0036
+    return(fundf)
+  })
+
+# data_ls[[1]]-> fundf
+full_data <- 
+lapply(data_ls, function(fundf){
+  fundfob <- fundf[fundf$set == "obs",]
+  colnames(fundfob)[ colnames(fundfob) %in%c("temp","rhum","sol_rad","wdsp","rain" )] <- 
+    paste0(c("temp","rhum","sol_rad","wdsp","rain" ), "_ob")
+  bind_cols(fundf[fundf$set == "fore",], 
+            fundfob[, grep("_ob", colnames(fundfob))]) %>% 
+    filter(hour_step %in% 1:240) 
+})
+
+bind_rows(full_data) ->full_data
+
+#Stations
+full_data %>% 
+  group_by(stna) %>% 
+  summarise(Latitude = unique(lat),
+            Longitude = unique(long)) %>% 
+  write_csv(here::here("out", "fore", "Stations.csv"))
+
+full_data %>% 
+  group_by(hour_step) %>% 
+  summarise( rmse = sqrt(mean(temp - temp_ob, na.rm = T)^2),
+             mse = mean(abs(temp - temp_ob), na.rm = T)) ->xx
+
+####################################################################################
+#RH errors overall
+####################################################################################
+
+
+full_data %>% 
+  group_by(hour_step, for_date) %>% 
+  mutate(rhum_ob = as.numeric(rhum_ob)) %>% 
+  summarise( rmse = sqrt(mean(rhum - rhum_ob, na.rm = T)^2),
+             mse = mean(abs(rhum - rhum_ob), na.rm = T),
+             ccc = epiR::epi.ccc(
+               sol_rad,
+               sol_rad_ob,
+               ci = "z-transform",
+               conf.level = 0.95,
+               rep.measure = FALSE
+             )$rho.c[, 1]) %>% 
+  ungroup() %>% 
+  mutate(var = "rhum") ->xx 
+
+full_data %>% 
+  group_by(day_step) %>% 
+  mutate(rhum_ob = as.numeric(rhum_ob)) %>% 
+  summarise( rmse = sqrt(mean(rhum - rhum_ob, na.rm = T)^2),
+             mse = mean(abs(rhum - rhum_ob), na.rm = T),
+             ccc = epiR::epi.ccc(
+               sol_rad,
+               sol_rad_ob,
+               ci = "z-transform",
+               conf.level = 0.95,
+               rep.measure = FALSE
+             )$rho.c[, 1]) %>% 
+  ungroup()  %>% 
+  mutate(var = "rhum")->errors_daily_rh
+
+
+#Relative humidity
+ggplot(xx,aes(factor(hour_step), rmse))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="RMSEs Relatve Humidity", 
+       subtitle="Tufte boxplot of RMSE hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="RMSE")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$rmse)-2, label =as.character(round(errors_daily$rmse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+
+ggplot(xx,aes(factor(hour_step), mse))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="MSEs Relatve Humidity", 
+       subtitle="Boxplot of MSE hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="MSE")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$mse)-2, label =as.character(round(errors_daily$mse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+
+
+
+
+#Temp
+full_data %>% 
+  group_by(hour_step, for_date) %>% 
+  mutate(temp_ob = as.numeric(temp_ob)) %>% 
+  summarise( rmse = sqrt(mean(temp - temp_ob, na.rm = T)^2),
+             mse = mean(abs(temp - temp_ob), na.rm = T),
+             ccc = epiR::epi.ccc(
+               sol_rad,
+               sol_rad_ob,
+               ci = "z-transform",
+               conf.level = 0.95,
+               rep.measure = FALSE
+             )$rho.c[, 1]) %>% 
+  ungroup() %>% 
+  mutate(var = "temp") ->xx 
+
+full_data %>% 
+  group_by(day_step) %>% 
+  mutate(temp_ob = as.numeric(temp_ob)) %>% 
+  summarise( rmse = sqrt(mean(temp - temp_ob, na.rm = T)^2),
+             mse = mean(abs(temp - temp_ob), na.rm = T),
+             ccc = epiR::epi.ccc(
+               sol_rad,
+               sol_rad_ob,
+               ci = "z-transform",
+               conf.level = 0.95,
+               rep.measure = FALSE
+             )$rho.c[, 1]) %>% 
+  ungroup() %>% 
+  mutate(var = "temp") ->errors_daily_temp
+
+ggplot(xx,aes(factor(hour_step), rmse))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="RMSE Temperature", 
+       subtitle="Boxplot of RMSE hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="RMSE")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$rmse)-max(xx$rmse)*0.01, label =as.character(round(errors_daily$rmse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+
+ggplot(xx,aes(factor(hour_step), mse))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="MSE Temperature", 
+       subtitle="Boxplot of MSE hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="MSE")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$mse)-max(xx$mse)*0.01, label =as.character(round(errors_daily$mse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+
+
+
+#####################################
+#Solar Radiation
+#########################################
+
+full_data %>% 
+  group_by(hour_step, for_date) %>% 
+  mutate(temp_ob = as.numeric(temp_ob)) %>% 
+  summarise( rmse = sqrt(mean(sol_rad - sol_rad_ob, na.rm = T)^2),
+             mse = mean(abs(sol_rad - sol_rad_ob), na.rm = T),
+             rsq = cor(sol_rad, sol_rad_ob),
+             ccc = epiR::epi.ccc(
+               sol_rad,
+               sol_rad_ob,
+               ci = "z-transform",
+               conf.level = 0.95,
+               rep.measure = FALSE
+             )$rho.c[, 1]
+             ) %>% 
+  ungroup() %>% 
+  mutate(var = "sol_rad") ->xx 
+
+errors_daily_sol <- 
+full_data %>% 
+  group_by(day_step) %>% 
+  mutate(sol_rad_ob = as.numeric(sol_rad_ob)) %>% 
+  summarise( rmse = sqrt(mean(sol_rad - sol_rad_ob, na.rm = T)^2),
+             mse = mean(abs(sol_rad - sol_rad_ob), na.rm = T),
+             rsq = cor(sol_rad, sol_rad_ob),
+             ccc = epiR::epi.ccc(
+               sol_rad,
+               sol_rad_ob,
+               ci = "z-transform",
+               conf.level = 0.95,
+               rep.measure = FALSE
+             )$rho.c[, 1]) %>% 
+  ungroup() %>% 
+  mutate(var = "sol_rad")
+
+ggplot(xx,aes(factor(hour_step), rmse))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="RMSE Solar Radiation", 
+       subtitle="Boxplot of RMSE hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="RMSE")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$rmse)-max(xx$rmse)*0.01, label =as.character(round(errors_daily$rmse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+
+ggplot(xx,aes(factor(hour_step), mse))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="MSE Solar Radiation", 
+       subtitle="Boxplot of MSE hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="MSE")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$mse)-max(xx$mse)*0.01, label =as.character(round(errors_daily$mse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+
+
+ggplot(errors_daily,aes(factor(daystep), rmse))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="RMSE Solar Radiation", 
+       subtitle="Boxplot of ccc hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="RMSE")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$rmse)-max(xx$rmse)*0.01, label =as.character(round(errors_daily$rmse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+
+
+
+bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>% 
+
 
 
 
@@ -571,19 +825,6 @@ nas <- sapply(data_ls, function(x) mean(is.na(x[,c( "temp", "rhum")])))%>% as.ve
 sum(nas<0.01)
 length(data_ls)
 
-
-
-#####
-#convert from w/m2 to MJ/m2
-#conversion https://cliflo-niwa.niwa.co.nz/pls/niwp/wh.do_help?id=ls_rad
-data_ls <- 
-lapply(data_ls, function( fundf){
-fundf$sol_rad <- fundf$sol_rad * 0.0036
-return(fundf)
-})
-
-data_ls %>% 
-  group_by(id) %>% 
 
 
 source(here::here("scr", "model", "run.R"))
