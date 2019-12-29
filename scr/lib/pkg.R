@@ -26,7 +26,8 @@ list.of.packages <-
     "parallel",
     "unikn",
     "pracma",
-    "Metrics"
+    "Metrics",
+    "epiR"
   )
 
 new.packages <-

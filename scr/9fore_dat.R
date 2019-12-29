@@ -589,7 +589,7 @@ data_ls <-
     return(fundf)
   })
 
-# data_ls[[1]]-> fundf
+# wider format for the comparison
 full_data <- 
 lapply(data_ls, function(fundf){
   fundfob <- fundf[fundf$set == "obs",]
@@ -598,9 +598,8 @@ lapply(data_ls, function(fundf){
   bind_cols(fundf[fundf$set == "fore",], 
             fundfob[, grep("_ob", colnames(fundfob))]) %>% 
     filter(hour_step %in% 1:240) 
-})
-
-bind_rows(full_data) ->full_data
+}) %>% 
+bind_rows() 
 
 #Stations
 full_data %>% 
