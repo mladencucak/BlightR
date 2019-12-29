@@ -54,13 +54,10 @@ par_set <-
   unlist() %>% as.character()
 
 done <- 
-  list.files(here::here("out", "eval", "eval")) %>% 
+  list.files(here::here("out", "eval", "out")) %>% 
   str_replace(".Rdata","")
 
 
-par_set <- 
-  par_set[!str_detect(par_set, "0l")]
-par_set[par_set!=done]
 
 
 ###################################################################################
