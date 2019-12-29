@@ -138,7 +138,7 @@ source(here::here("scr", "lib", "DiagFuns.R"))
 
 
 
-list.files(here::here("out", "eval", "out"))
+
 
 par_set <- 
   readxl::read_xlsx( 
@@ -146,16 +146,16 @@ par_set <-
   unlist() %>% as.character()
 
 done <- 
-  list.files(here::here("out", "eval", "diag_fin")) %>% 
+  list.files(here::here("out", "eval", "out")) %>% 
   str_replace(".Rdata","")
 
 
 
 
 if(length(done)== 0){
-  par_set_run <- par_set
+ stop("No evaluation outputs...check!")
 }else{
-  par_set_run <- par_set[par_set!=done]
+  par_set_run <- par_set[par_set==done]
 }
 
 
@@ -170,7 +170,7 @@ clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 lss <- list()
 
 for (i in par_set_run){
-  #  i <-  par_set_run[55]
+  #  i <-  par_set_run[2]
   # i <-  "ShapeSpor4l" 
   # x <- lss[[1]]
   # run_type <- "model"
@@ -267,7 +267,7 @@ for (i in par_set_run){
   
   
 
-  rm(tpp_ev_ls, trt_ev_ls, eval_lss)
+  # rm(tpp_ev_ls, trt_ev_ls, eval_lss)
   
   eval_long$model <- 
     factor(eval_long$model, levels = c(  "R", "Rsi","Rmi"))
