@@ -25,7 +25,8 @@ list.of.packages <-
     "pbapply",
     "parallel",
     "unikn",
-    "pracma"
+    "pracma",
+    "Metrics"
   )
 
 new.packages <-
