@@ -11,7 +11,7 @@ load(file= here::here("dat", "treatment_no_estim.Rdata"))
 
 
 ###################################################################################
-# Funs
+# Model run function
 ###################################################################################
 source(here::here("scr", "model", "run.R"))
 source(here::here("scr", "lib", "IrishRulesModelSensitive.R"))
@@ -42,11 +42,10 @@ RunModel <- function(x, ir_run = FALSE, ir_def_run = FALSE, model_parameters = "
   return(y)
 }
 ###################################################################################
-# Run
+# Run the models
 ###################################################################################
 
-library("pbapply")
-library("parallel")
+
 starttime <- Sys.time()
 cores <- ifelse(detectCores() > 1, detectCores()-1, 1) 
 cl <- makeCluster(cores)
@@ -77,14 +76,11 @@ save(default_res_ls, file = here::here("out","default", "model_outputs.Rdata"))
 
 rm( out_ls, trt_ls)
 
-################################
-# 
-################################
 
 
-################################
+###################################################################################
 #Calculate the cutoff points - decision thresholds 
-################################
+###################################################################################
 
 load( file = here::here("out", "default", "model_outputs.Rdata"))
 
@@ -102,45 +98,49 @@ warn_t_df <-
              ir_risk = seq.int(1,26,1),
              defir_risk = seq.int(1,26,1)
   )
-#Set the range ow cutoff points
+#Set the range of cutoff points
 warning_thresholds <- warn_t_df$warn_thresh
 
 save(warn_t_df, file = here::here("out", "default", "warning_thresholds.Rdata"))
 
 rm(Cutoffs,trt_df)
 
-################################
+###################################################################################
 #Calculate the number of treatments
-################################
+###################################################################################
 # load( file = here::here("out", "default", "warning_thresholds.Rdata"))
 
 
 duration_of_season <- nrow(unique(default_res_ls[2][[1]][[1]]["doy"]))
 min_prot_dur <-  7
 max_trt <- 
-  round(duration_of_season  / min_prot_dur,3)
+  round(duration_of_season  / min_prot_dur,2)
 
 
-min_prot_dur_e  = c(7:14)
+min_prot_dur_e  = c(7:15)
 max_trt_e <-
-  round(duration_of_season  / min_prot_dur_e,3)
+  round(duration_of_season  / min_prot_dur_e,2)
 
 
 red_df <- 
 data.frame(min_prot_dur_e  = min_prot_dur_e,
            max_trt_e = max_trt_e,
-           reduction = round(max_trt_e/ max_trt,3))
+           reduction = round(max_trt_e/ max_trt,2))
 rm(duration_of_season)
 
-####################################################
+
+save(red_df, file = here::here("out", "default", "avg_reduction_def.Rdata"))
+
+
+###################################################################################
 #Calculate the number of predicted outbreaks and treatments
-####################################################
+###################################################################################
 
 
-# load( file= here::here("tmp", "outbreaks&wth&outputs.Rdata"))
-
-
+load( file = here::here("out", "default", "avg_reduction_def.Rdata"))
+load( file= here::here("tmp", "outbreaks&wth&outputs.Rdata"))
 source(here::here("scr", "lib", "DiagFuns.R"))
+
 
 cores <- ifelse(detectCores() > 1, detectCores()-1, 1) 
 cl <- makeCluster(cores)
@@ -185,11 +185,18 @@ default_eval_lss <- list(tpp_ev_ls, trt_ev_ls)
 save(default_eval_lss, file = here::here("out", "default", "model_eval.Rdata"))
 
 
-#############################################
+###################################################################################
 #Visualise the outputs of threatment lists
-#############################################
+###################################################################################
 source(here::here("scr","lib",  "pkg.R"))
 load( file = here::here("out", "default", "model_eval.Rdata"))
+source(here::here("scr", "lib", "DiagFuns.R"))
+load( file = here::here("out", "default", "avg_reduction_def.Rdata"))
+
+tpp_ev_ls <-  default_eval_lss[[1]]
+trt_ev_ls <-  default_eval_lss[[2]]
+
+
 
 lapply(default_res_ls[2][[1]], function(x){
   x <- separate(x, id, into = c("stna", "year"), sep = "_")
@@ -252,50 +259,20 @@ lapply(trt_ev_ls, function(x){
   ggplot()+
   geom_histogram(aes(risk), bins = 60)+
   facet_wrap(~model)
-#for each model, find a 90% risk trhreshold
-
-tpp_ev_ls <-  default_eval_lss[[1]]
-trt_ev_ls <-  default_eval_lss[[2]]
-
-models <- 
-  tpp_ev_ls[ , grepl("risk", colnames(tpp_ev_ls))] %>% colnames()
-
-trt_ev <- 
-  trt_ev_ls %>% 
-  bind_rows() %>% 
-  select(-starts_with("id")) %>% 
-  group_by(warning_thres) %>% 
-  summarise_all(mean)
-
-#Convert to 1 - specificity
-trt_ev[, c(paste0(models, "_trt"))] <- 
-  c(trt_ev[, c(paste0(models, "_trt"))]/max_trt)
-
-# 
-trt_ev_long <- 
-  trt_ev %>% 
-  reshape2::melt(., id.vars = "warning_thres", 
-                 variable.name = "model", 
-                 value.name = "spec",
-                 factorsAsStrings  = FALSE) %>% 
-  mutate(model = gsub("_trt", "", model))
 
 
-tpp_ev_long <- 
-  tpp_ev_ls %>% 
-  reshape2::melt(., id.vars = "warning_thres", 
-                 variable.name = "model", 
-                 value.name = "sens",
-                 factorsAsStrings  = FALSE)
-eval_long <- 
-  left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model" ))
+
+
+
+
 
 #################################################################
-#Diag plots
+#Calculate the partial AUC
 #################################################################
+
 # source(here::here("scr","lib",  "pkg.R"))
 # load( file = here::here("out", "default", "model_eval.Rdata"))
-# source(here::here("scr", "lib", "DiagFuns.R"))
+source(here::here("scr", "lib", "DiagFuns.R"))
 # tpp_ev_ls <-  default_eval_lss[[1]]
 # trt_ev_ls <-  default_eval_lss[[2]]
 #  
@@ -303,358 +280,137 @@ eval_long <- EvalTable(tpp_ev_ls, trt_ev_ls)
 
 eval_long$model <- 
   gsub("risk_", "R",  eval_long$model) %>% 
-    gsub("risk", "R",  .) %>% 
-    gsub("ir_R", "MIR",  .) %>% 
+  gsub("risk", "R",  .) %>% 
+  gsub("ir_R", "MIR",  .) %>% 
   gsub("defMIR", "IR",  .) 
-  
-eval_long$model <- 
-  factor(eval_long$model, levels = c(  "R", "Rsi","Rmi", "IR","MIR" ))
+
+eval_longer <- EvalCutoff(eval_long, 
+                          cutoffs =  c(0.8, 0.85, 0.9))
+
+fin <- DiagPerformance(eval_longer = eval_longer,
+                       pAUCcutoff = .8,
+                       no_of_outbreaks = 362)
+
+fin$model <- 
+  factor(fin$model, levels = c(  "R", "Rsi","Rmi", "IR","MIR" ))
+
+fin %>% 
+  arrange(model) %>% 
+  rename(`False negative` = out_miss,
+         Model = model,
+         `Maximum TPR (%)` = maxTPR)%>%
+  mutate(pAUC = round(pAUC, 3)) %>% 
+  mutate(AUC = round(AUC, 3)) %>% 
+  write_csv(here::here("out" ,"default", "Diag perf default.csv" ))
+
+shell.exec(here::here("out" ,"default", "Diag perf default.csv" ))
+
+checkdf <- 
+eval_longer %>% filter(sens == .85) %>% select(model, spec)
+
+# lapply(trt_ev_ls, function(x){
+#   x <- separate(x, id, into = c("stna", "year"), sep = "_")
+#   
+#   bind_rows (data.frame(risk = x[x$warning_thres == checkdf[checkdf$model<= "Rsi", "spec"],"risk_si_trt"] %>% unlist(),
+#                         stna = unique(x$stna),
+#                         model = "Rsi"),
+#              data.frame(risk = x[x$warning_thres == checkdf[checkdf$model<= "Rmi", "spec"],"risk_mi_trt"] %>% unlist(),
+#                         stna = unique(x$stna),
+#                         model = "Rmi"),
+#              data.frame(risk = x[x$warning_thres == checkdf[checkdf$model<= "R", "spec"],"risk_trt"] %>% unlist(),
+#                         stna = unique(x$stna),
+#                         model = "R"),
+#              data.frame(risk = x[x$warning_thres == checkdf[checkdf$model<= "MIR", "spec"],"ir_risk_trt"] %>% unlist(),
+#                         stna = unique(x$stna),
+#                         model = "MIR"),
+#              data.frame(risk = x[x$warning_thres == checkdf[checkdf$model<= "IR", "spec"],"ir_risk_trt"] %>% unlist(),
+#                         stna = unique(x$stna),
+#                         model = "IR"))
+# })
+#################################################################
+#Diag plots
+#################################################################
+
+
+#Produce labs that will contain the diagnostic information
+finlab <- 
+  fin %>% 
+  arrange(desc(pAUC)) %>% 
+  mutate(pAUC = round(pAUC, 3)) %>% 
+  mutate(AUC = round(AUC, 3)) %>% 
+  select(-c(out_miss, AUC)) %>% 
+  select(model, pAUC, maxTPR) %>% 
+  unite( "lab" ,2:3, sep= "; ") %>% 
+  mutate(lab = paste0("(", lab, "%)"))
+
+eval_longerdf <- 
+  left_join(eval_longer, finlab, by = "model") %>% 
+  mutate(modellab = paste(model, lab)) %>% 
+  mutate(modellab = factor(modellab))
 
 #Set  color scheme
-my_pair <- unikn::seecol(pal_unikn_pair)[c(1,7,9,15,16)]
-names(my_pair) <- levels(eval_long$model)
+my_pair_lab <- c(unikn::seecol(pal_unikn_pair)[c(1,7,9,15)], "#696969")
+names(my_pair_lab) <- unique(eval_longer$modellab)
 
 
 
-
-pp <- 
-  eval_long %>%
-  ggplot(aes(spec, sens, color = model)) +
+eval_longerdf %>% 
+  ggplot(aes(spec, sens, color = fct_rev(modellab))) +
+  geom_rect(mapping = aes( xmin =0, xmax=1, ymin = .8, ymax=1), fill = "lightgray", color = "white",alpha = .1) +
   geom_hline(
     yintercept = seq(0 , 1, 0.1),
-    size = 0.1,
+    size = 0.3,
     color = "gray",
     linetype = "dotted"
   )+
   geom_vline(
     xintercept = red_df$reduction,
-    size = 0.1,
+    size = 0.35,
     color = "gray",
     linetype = "solid",
-    alpha= .5
+    alpha= .3
   )+
-  geom_point(size = .5) +
-  geom_line() +
-  scale_y_continuous(limits = c(0, 1),
-                     expand = c(0, 0),
-                     breaks = seq(0, 1, 0.1),
-                     name = "Proportion of predicted outbreaks") +
+  geom_hline(
+    yintercept = c(.95, .9, .85, .8),
+    linetype = "dashed",
+    size = .3,
+    alpha = .3
+  ) +
+  geom_point(size = .5,show.legend=FALSE) +
+  geom_line( size = .6) +
   scale_x_continuous(
     limits = c(0, 1),
     expand = c(0, 0),
     breaks = red_df$reduction,
-    labels = red_df$min_prot_dur_e,
-    name = "Proportion of treatment reduction from the 7-day application schedule"
+    labels = paste0(red_df$reduction, "\n", red_df$min_prot_dur_e),
+    name = "Treatment reduction rate (TRR) and the corresponding average fixed treatment schedule",
+    position = "top"
   ) +
-  scale_color_manual(values = my_pair)+
-  labs(color = "Model:")+
-theme_bw() +
+  scale_color_manual(values = my_pair_lab)+
+  labs(color = "Model (pAUC; maxTPR):")+
+  theme_article() +
   theme(
-    text = element_text(size = 10.5),
+    text = element_text(size = 12),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank()
-  )
-
-p1 <- 
-pp+
-  geom_hline(yintercept = c(.9,.8), 
-             linetype = "dashed",
-             size = .2) 
-  
-
-  
-  
- p3 <- 
-  ggplot(eval_long,aes(spec, sens, color = model, label = warning_thres))+
-  geom_hline(
-    yintercept = seq(0 , 1, 0.1),
-    size = 0.1,
-    color = "gray",
-    linetype = "dotted"
-  )+
-  geom_hline(yintercept = c(.9,.8), 
-             linetype = "dashed",
-             size = .2) +
-  geom_vline(
-    xintercept = red_df$reduction,
-    size = 0.1,
-    color = "gray",
-    linetype = "solid",
-    alpha= .5
-  )+
-  
-  geom_point( colour = "black",size = 0.5)+
-  
-  geom_line(aes(spec, sens, color = model))+
-    scale_y_continuous(limits = c(0, 1),
-                       expand = c(0, 0),
-                       breaks = seq(0, 1, 0.1),
-                       name = "Proportion of predicted outbreaks") +
-    scale_x_continuous(
-      limits = c(0, 1),
-      expand = c(0, 0),
-      breaks = red_df$reduction,
-      labels = red_df$min_prot_dur_e,
-      name = "Proportion of treatment reduction from the 7-day application schedule"
-    ) +
-    scale_color_manual(values = my_pair)+
-    
-  ggrepel::geom_text_repel(size = 2)+
-  theme_bw() +
+  ) +
   theme(
-    text = element_text(size = 10.5),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()
-  )+
-  
-  facet_wrap(~model, ncol = 4)+
-  
-  theme(legend.position = "top")
+    text = element_text(size=12),
+    legend.position = c(.81, .31),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.key.width = unit(1, "cm")
+  ) +
+  guides(color = guide_legend(
+    nrow = 5,
+    byrow = TRUE,
+    title.position = "top",
+    # colour = guide_legend(override.aes = list(alpha = 1, size = 1))
+  ))+
+  scale_y_continuous(breaks = seq(0, 1, 0.05),
+                     limits = c(0, 1),
+                     name = "Proportion of predicted outbreaks (TPR)")+
+  ggsave(filename = here::here("out", "default", "model_eval_ribbon.png"), 
+         width = 8.5, height = 6.5, units = "in", dpi=820)
 
- p2 <-
-   pp +
-   geom_hline(
-     yintercept = c(.95, .9, .85),
-     linetype = "dashed",
-     size = .1,
-     alpha = .5
-   ) +
-   coord_cartesian(ylim = c(0.8, 1), xlim = c(0.6, 1)) +
-   scale_y_continuous(
-
-          breaks = seq(0.8, 1, 0.05),
-     name = "Proportion of predicted outbreaks"
-   ) 
-   
-ggsave(filename = here::here("out", "default", "model_eval.png"),  
-       plot=p1,
-       width = 7, height = 4, units = "in")
-ggsave(filename = here::here("out", "default", "model_eval_crop.png"),  
-       plot=p2,
-       width = 7, height = 4, units = "in")
-ggsave(filename = here::here("out", "default", "model_eval_facets.png"),  plot=p3,
-       width = 7, height = 5, units = "in")
-
-shell.exec(here::here("out", "default"))
-
-#################################################################
-#Calculate the partial ROC
-#################################################################
-
-
-eval_longer <- 
-split(eval_long, eval_long$model) %>% 
-  
-lapply(., function(fundf){
-
-  for(prop_tpp in c(0.8, 0.85, 0.9)){
-  
- if(fundf$sens[1] >prop_tpp){
-   # find the two nearest warning thresholds to the accepted decision threshold
-   closest_high <- 
-     fundf$sens[fundf$sens>prop_tpp] %>% tail(1)
-   
-   closest_low <-
-     fundf$sens[which(fundf$sens<prop_tpp)][1]
-   
-   dff <- fundf[fundf$sens >= closest_low& fundf$sens <= closest_high,]
-   spec <- dff$spec %>% unlist()
-   sens <- dff$sens %>% unlist
-   
-   value <- 
-     predict(lm(spec ~ sens ), data.frame(sens = prop_tpp))
-   
-   which(fundf$sens<prop_tpp)[1]
-   fundf <- 
-   add_row(fundf, 
-           warning_thres = prop_tpp,
-           model = unique(fundf$model),
-           spec = value, 
-           sens = prop_tpp,
-           .before = which(fundf$sens<prop_tpp)[1])
- }else{
-   fundf <- 
-   add_row(fundf, 
-           warning_thres = prop_tpp,
-           model = unique(fundf$model),
-           spec = NA, 
-           sens = prop_tpp,
-           .before = 1)
- }
-  
-
-}
-  return(fundf)
-}
-) %>% 
-  bind_rows()
-
-eval_longer %>% 
-  drop_na() %>% 
-  filter(sens>= 0.85) %>% 
-  split(., .$model) %>% 
-  lapply(., function(fundf){
-    
-    
-    # fundf%>% 
-    #   map_df(rev) %>% 
-    #   summarise(pAUC = pracma::trapz(c( spec, 1), c(sens, max(sens))))
-    # 
-    # pracma::trapz(c(1, fundf$spec), c(max(fundf$sens),fundf$sens ))
-    
-    fundf%>% 
-      summarise(model = unique(model),
-                out_miss = paste0(abs(362* max(sens) -362), "/362"),
-                maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
-                pAUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
-                ff = pracma::trapz(c( rev(spec), 1), c(rev(sens)-.8, .2))
-      )
-    
-  }
-  ) %>% 
-  bind_rows() %>% 
-  arrange(desc(pAUC))
-
-    
-
- max_tpp <- 
-eval_longer %>% 
-  mutate(sens = round(sens, 3)) %>% 
-  group_by(model) %>% 
-  filter(warning_thres %in% c( 1)) %>% 
-   dplyr::select(-c(warning_thres)) %>% 
-  mutate(spec = "Max TPP") %>% 
-  rename("TPP" = spec) %>% 
-  spread(model, sens) 
-
-eval_longer %>% 
-  group_by(model) %>% 
-  filter(warning_thres %in% c( 0.9, 0.85, 0.8)) %>% 
-  mutate(spec = round(spec, 3)) %>% 
-  dplyr::arrange(warning_thres) %>% 
-  dplyr::select(-c(warning_thres)) %>% 
-  spread(model, spec) %>% 
-  arrange(desc(sens)) %>% 
-  rename("TPP" = sens) %>% 
-  mutate(TPP = as.character(TPP)) %>% 
-  bind_rows(max_tpp, .) %>% 
-  write_csv(here::here("out" ,"default", "Diag perf default.csv" ))
-
-
-# fun_df <- 
-eval_longer %>% 
-  drop_na() %>% 
-  filter(sens>= 0.85) %>% 
-  split(., .$model) %>% 
-  lapply(., function(fundf){
-    
-     
-    # fundf%>% 
-    #   map_df(rev) %>% 
-    #   summarise(pAUC = pracma::trapz(c( spec, 1), c(sens, max(sens))))
-    # 
-    # pracma::trapz(c(1, fundf$spec), c(max(fundf$sens),fundf$sens ))
-    
-    fundf%>% 
-      summarise(model = unique(model),
-                out_miss = paste0(abs(362* max(sens) -362), "/362"),
-                maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
-                pAUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
-                ff = pracma::trapz(c( rev(spec), 1), c(rev(sens)-.8, .2))
-                )
-    
-  }
-  ) %>% 
-  bind_rows() %>% 
-  arrange(desc(pAUC))
-
-
-fundf <-
-  eval_longer %>%
-  group_by(model) %>%
-  filter(sens>= 0.8) %>%
-  filter(model == "R")
-# 
-# qplot(c(rev(fun_df$spec), 1),
-#       c(rev(fun_df$sens), max(fun_df$sens)))
-  
-qplot()
-fun_df<-fun_df[dim(fun_df)[1]:1,]
-pracma::trapz(c( fun_df$spec, 1), c(fun_df$sens, 1))
-pracma::trapz(c( fun_df$sens, 1), c(fun_df$spec, 1))
-
-fun_df[dim(fun_df)[1]:1,] %>% 
-summarise(ff = pracma::trapz(c( spec, 1), c(sens, 1)))
-
-
-#function to calculate AUROC for list of inputs
-GetAUC <- function(fun_df) {
-  fun_df <- fun_df[rev(order(fun_df$cut_point)), ]
-  auc <-
-    pracma::trapz(c(0, fun_df$one_min_spec, 1), c(0, fun_df$sens, 1))
-  result <- data.frame(model = unique(fun_df$model),
-                       auc = auc)
-  return(result)
-}
-# AUROC_data <- 
-  lapply(ROC_data, function(x)
-  GetAUC(x))
-AUROC_data <-
-  lapply(AUROC_data, function(x)
-    mutate_if(x, is.factor, as.character))
-AUROC_data <- bind_rows(AUROC_data)
-
-
-
-eval_long$warning_thres
-
-
-eval_longer %>% 
-  group_by(model) %>% 
-  filter(sens>= 0.8) %>% 
-  mutate(spec = round(spec, 3)*100) %>% 
-  # ggplot(aes(spec,sens, color = model))+
-  # geom_line()+
-  # geom_point(size = .5)
-  # facet_wrap(~model)%>%
-    ggplot(.,aes(spec, sens, color = model)) +
-    geom_hline(
-      yintercept = seq(0 , 1, 0.1),
-      size = 0.1,
-      color = "gray",
-      linetype = "dotted"
-    )+
-    geom_hline(yintercept = c(.9,.8), 
-               linetype = "dashed",
-               size = .2) +
-    geom_vline(
-      xintercept = red_df$reduction,
-      size = 0.1,
-      color = "gray",
-      linetype = "solid",
-      alpha= .5
-    )+
-    geom_point(size = .5) +
-    geom_line() +
-    scale_y_continuous(limits = c(0, 1),
-                       expand = c(0, 0),
-                       breaks = seq(0.8, 1, 0.1),
-                       name = "Proportion of predicted outbreaks") +
-    scale_x_continuous(
-      limits = c(0, 1),
-      expand = c(0, 0),
-      breaks = red_df$reduction,
-      labels = red_df$min_prot_dur_e,
-      name = "Proportion of treatment reduction from the 7-day application schedule"
-    ) +
-    theme_bw() +
-    theme(
-      text = element_text(size = 10.5),
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank()
-    )
-  
-
-
-
-
+shell.exec(here::here("out", "default", "model_eval_ribbon.png"))

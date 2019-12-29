@@ -153,13 +153,13 @@ left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model" ))
 return(eval_long)
 }
 
-EvalCutoff <- function(){
+EvalCutoff <- function(eval_longer, cutoffs){
   
   split(eval_long, eval_long$model) %>% 
     
     lapply(., function(fundf){
       
-      for(prop_tpp in c(0.8, 0.85, 0.9)){
+      for(prop_tpp in cutoffs ){
         
         if(fundf$sens[1] >prop_tpp){
           # find the two nearest warning thresholds to the accepted decision threshold
@@ -198,5 +198,54 @@ EvalCutoff <- function(){
     }
     ) %>% 
     bind_rows()
+  
+}
+
+
+
+DiagPerformance <- function(eval_longer, 
+                            pAUCcutoff = NULL, #define cutoff point for calculation of the partial AUC
+                            no_of_outbreaks # define total number of outbreaks evaluated
+                            ){
+  if(is.null(pAUCcutoff)){
+    warning("pAUCcutoff is set to .8!")
+    pAUCcutoff <- .8
+  }
+  eval_longer %>% 
+    drop_na() %>% 
+    split(., .$model) %>% 
+    lapply(., function(fundf){
+      
+      if( max(fundf$sens)>pAUCcutoff){
+        dff <- 
+          fundf%>% 
+          filter(sens>= pAUCcutoff) %>% 
+          summarise(model = unique(model),
+                    out_miss = paste0(abs(no_of_outbreaks* max(sens) -no_of_outbreaks), "/",no_of_outbreaks),
+                    maxTPR = c(max(sens) %>% round(4))*100,
+                    pAUC = pracma::trapz(c( rev(spec), 1),
+                                         c(rev(sens),max(sens) )-pAUCcutoff)
+          )
+      } else {
+        dff <- 
+          fundf%>% 
+          summarise(model = unique(model),
+                    out_miss = paste0(abs(no_of_outbreaks* max(sens) -no_of_outbreaks), "/",no_of_outbreaks),
+                    maxTPR = c(max(sens) %>% round(4))*100,
+                    pAUC = 0
+          )
+      }
+      dfff<- 
+        fundf%>% 
+        summarise(model = unique(model),
+                  AUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
+        )
+      left_join(dff,dfff, by = "model")
+      
+      # qplot( c( rev(fundf$spec), 1),c(rev(fundf$sens),max(fundf$sens) )-pAUCcutoff)
+    }
+    ) %>% 
+    bind_rows() %>% 
+    arrange(desc(pAUC))
   
 }

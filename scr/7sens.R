@@ -81,7 +81,9 @@ for (i in par_set_run){
   # run_type <- "model"
   
   cl <- makeCluster(detectCores())
-  clusterExport(cl, c("BlightR","IrishRulesModel", "RunModel",
+  clusterExport(cl, c("BlightR",
+                      "IrishRulesModel", 
+                      "RunModel",
                       "TPPFun", "ControlFreqFun", 
                       "ExtractCol",
                       "i"))
@@ -128,14 +130,6 @@ print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"),
 
 
 
-
-
-
-
-
-
-
-
 ###############################################################
 #Diagnostic performance
 ###############################################################
@@ -146,6 +140,9 @@ source(here::here("scr", "lib", "funs.R"))
 source(here::here("scr", "lib", "DiagFuns.R"))
 
 
+save(res_lss, file = here::here("out","eval", "out", paste0(i,".Rdata")))
+
+list.files(here::here("out", "eval", "out"))
 
 par_set <- 
   readxl::read_xlsx( 
@@ -157,9 +154,6 @@ done <-
   str_replace(".Rdata","")
 
 
-# par_set <- 
-#   par_set[!str_detect(par_set, "0l")]
-# par_set[par_set!=done]
 
 
 if(length(done)== 0){
@@ -172,8 +166,12 @@ if(length(done)== 0){
 starttime <- Sys.time()
 
 # ls <- list()
-cl <- makeCluster(detectCores()-2)
+cl <- makeCluster(detectCores()-1)
 clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
+
+
+#Initiate the list containing all of the diagnostic data frames
+lss <- list()
 
 for (i in par_set_run){
   #  i <-  par_set_run[55]
@@ -254,21 +252,9 @@ for (i in par_set_run){
     cl = cl) 
   Sys.sleep(10)
   
-  eval_lss <- list(tpp_ev_ls, trt_ev_ls)
-  save(eval_lss, file = here::here("out","eval", "eval", paste0(i,".Rdata")))
-  
-  
-  
-  
   #################################################################
   #Calculate the partial AUC
   #################################################################
-  
-  # source(here::here("scr","lib",  "pkg.R"))
-  # load( file = here::here("out", "default", "model_eval.Rdata"))
-  source(here::here("scr", "lib", "DiagFuns.R"))
-  # tpp_ev_ls <-  default_eval_lss[[1]]
-  # trt_ev_ls <-  default_eval_lss[[2]]
   #  
   eval_long <- EvalTable(tpp_ev_ls, trt_ev_ls)
   
@@ -284,52 +270,27 @@ for (i in par_set_run){
 
   
   
-  # Get the evaluation data in long format
-  eval_long <- 
-    EvalTable(tpp_ev_ls, trt_ev_ls)
-  
+
   rm(tpp_ev_ls, trt_ev_ls, eval_lss)
-  
-  ###############################################################
-  #Save diag plots
-  ###############################################################
-  
-  eval_long$model <- 
-    gsub("risk_", "R",  eval_long$model) %>% 
-    gsub("risk", "R",  .) %>% 
-    gsub("ir_R", "MIR",  .) %>% 
-    gsub("defMIR", "IR",  .) 
   
   eval_long$model <- 
     factor(eval_long$model, levels = c(  "R", "Rsi","Rmi"))
   
-  #Set  color scheme
-  
-  my_pair <- seecol(pal_unikn_pair)[c(1,7,9,15,16)]
-  names(my_pair) <- levels(eval_long$model)
-  
-  
-  
-  ggsave(filename = here::here("out", "eval", "graphs", paste0(i,".png")),  plot=p1)
-  ggsave(filename = here::here("out", "eval", "graphs", paste0(i, "_zoom",".png")),  plot=p2)
-  
-  
-  save(eval_long, file = here::here("out","eval", "eval_long", paste0(i,".Rdata")))
-  
-  eval_long$model <-  as.character(eval_long$model)
 
-  
-  fin$eval <- i
-  
-  save(fin, file = here::here("out","eval", "diag_fin", paste0(i,".Rdata")))
-  
-  eval_longer <- EvalCutoff(eval_long, 
-                            cutoffs =  c(0.8, 0.85, 0.9))
-  
+    
   fin <- DiagPerformance(eval_longer = eval_longer,
                          pAUCcutoff = .8,
                          no_of_outbreaks = 362)
   
+  
+  
+
+    
+  fin$eval <- i
+  
+  lss[[i]] <- fin
+  save(fin, file = here::here("out","eval", "diag_fin", paste0(i,".Rdata")))
+
   #################################################################
   #Diag plots
   #################################################################
@@ -351,7 +312,7 @@ for (i in par_set_run){
     mutate(modellab = factor(modellab))
   
   #Set  color scheme
-  my_pair_lab <- my_pair
+  my_pair_lab <- c(unikn::seecol(pal_unikn_pair)[c(1,7,9,15)], "#696969")
   names(my_pair_lab) <- unique(eval_longer$modellab)
   
   
@@ -411,10 +372,12 @@ for (i in par_set_run){
     scale_y_continuous(breaks = seq(0, 1, 0.05),
                        limits = c(0, 1),
                        name = "Proportion of predicted outbreaks (TPR)")+
-    ggsave(filename = here::here("out", "default", "model_eval_ribbon.png"), 
+    ggsave(filename = here::here("out", "eval", "graphs", paste0(i,".png")), 
            width = 8.5, height = 6.5, units = "in", dpi=820)
   
+
   
+    
   
   gc()
   Sys.sleep(5)
@@ -425,142 +388,22 @@ for (i in par_set_run){
 }
 
 
+
 print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"), 3)))
 
 # source(here::here("scr", "lib", "GitCommit.R" ))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+bind_rows(lss) %>% 
+  save(here::here("out", "eval", "final_diag.Rdata"))
+  
+  
 
 
 
 ###############################################################
 ###############################################################
-#Final tables diagnostic
-###############################################################
-source(here::here("scr","lib",  "pkg.R"))
-source(here::here("scr", "lib", "funs.R"))
-source(here::here("scr", "lib", "DiagFuns.R"))
-
-par_set <- 
-  readxl::read_xlsx( 
-    here::here("scr", "model", "par_eval", "par_eval.xlsx"))[,"met_set"] %>% 
-  unlist() %>% as.character()
-
-starttime <- Sys.time()
-
-
-lss <- list()
-
-for (i in seq_along(par_set)){
-
-  eval_longer <- 
-    get(load( here::here("out","eval", "eval_long", 
-                         paste0(par_set[i],".Rdata"))))
-  
-  eval_longer$model <- 
-    factor(eval_longer$model, levels = c(  "R", "Rsi","Rmi"))
-  
-  # CAlculate the partial area under the curve and other diag
-  # perfomance indicatora
-  
-
-  fin <- 
-    eval_longer %>% 
-    drop_na() %>% 
-    # mutate()
-    # filter(sens>= 0.80) %>% 
-    split(., .$model) %>% 
-    lapply(., function(fundf){
-      
-      if( max(fundf$sens)>.8){
-      dff <- 
-        fundf%>% 
-        filter(sens>= 0.80) %>% 
-        summarise(model = unique(model),
-                  out_miss = paste0(abs(362* max(sens) -362), "/362"),
-                  maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
-                  pAUCh = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
-                  pAUC = pracma::trapz(c( rev(spec), 1),
-                                       c(rev(sens),max(sens) )-.8)
-        )
-      } else {
-        dff <- 
-          fundf%>% 
-          summarise(model = unique(model),
-                    out_miss = paste0(abs(362* max(sens) -362), "/362"),
-                    maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
-                    pAUCh = 0,
-                    pAUC = 0
-          )
-      }
-      dfff<- 
-        fundf%>% 
-        summarise(model = unique(model),
-                  AUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
-        )
-      left_join(dff,dfff, by = "model")
-      
-      # qplot( c( rev(fundf$spec), 1),c(rev(fundf$sens),max(fundf$sens) )-.8)
-    }
-    ) %>% 
-    bind_rows() %>% 
-    arrange(desc(pAUC))
-  
-  fin$eval <- par_set[[i]]
-  
-  save(fin, file = here::here("out","eval", "diag_fin", 
-                              paste0(par_set[[i]],".Rdata")))
-  
-  
-  lss[[i]] <- fin
-  gc()
-  Sys.sleep(5)
-  rm( p1, p2, eval_long )
-  print(paste0(i," of ", length(par_set)," :",
-               time_length(Sys.time() - starttime, unit = "minutes") %>% round(2)))
-  
-}
-
-
-
-print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"), 3)))
-
-finalres <- 
-  lss %>%
-  bind_rows()
-
-save(finalres, file = here::here("out", "eval", "final_diag.Rdata"))
-
-
-
-# source(here::here("scr", "lib", "GitCommit.R" ))
-beepr::beep()
-
-
-
-
-
-
-
-
-
-
-###############################################################
-#Diagnostic performance
+#Compare the diag. pefomance
 ###############################################################
 
 source(here::here("scr","lib",  "pkg.R"))
