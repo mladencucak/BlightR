@@ -11,6 +11,16 @@
 # model_parameters = "TminInf-3l"
 
 
+# fun_df <-data_ls[names(out_ls)=="fore_2017-06-15_Oakpark"]
+# fun_df <- fun_df[[1]]
+# fun_df <- data_ls[[1]]
+# run_type = "fore"
+# ir_run = TRUE
+# ir_def_run = TRUE
+# model_parameters = "default"
+# model_parameters = "calibration"
+# run_type= "fore"
+
 BlightR <- function(fun_df,
                     max_na = NULL, 
                     temporal_res = "daily", #resoulution of the final data to be returned, daily or hourly. if hourly returned at noon 
@@ -43,6 +53,9 @@ BlightR <- function(fun_df,
   #' It will not return risk values for the day when 
   #'  
   
+  if(is.data.frame(fun_df)==FALSE){
+    stop("Weather data is not a data frame!")
+  }
   
   #Load packages 
   pkg <- c("tidyverse","lubridate", "zoo")
@@ -61,10 +74,11 @@ BlightR <- function(fun_df,
   source(here::here("scr", "model", "fun.R"))#Model functions
 
   # Parameters 
-  if(model_parameters == "default"){
+  if(model_parameters == "calibrated"){
+   parameters <- read.csv(here::here("scr", "model", "par", "par_calib.csv"))[1,]
+  }else if(model_parameters == "default"){
   parameters <- read.csv( here::here("scr", "model", "par", "par_default.csv"))
   }else {
-    
     parameters <- readxl::read_xlsx(here::here("scr", "model", "par_eval", "par_eval.xlsx"))
     parameters <- 
       parameters[parameters$met_set == model_parameters,] %>% 
@@ -105,8 +119,9 @@ BlightR <- function(fun_df,
   
   result_ls <- list()
 
+  
   #Define the start of sporulation 
-  # i = 122
+  # i = 169
   for(i in c(begin:end)){
     sporstart <- 
       timedf[ timedf$doy == c(i-1), "sunset_hr"] -
@@ -146,7 +161,7 @@ BlightR <- function(fun_df,
      ############################
       #Calculate sporulation
       daydf$spor <-  
-        Sporulation(daydf$temp, daydf$rhum, parameters, rounding = 7)
+        Sporulation(daydf$temp, daydf$rhum, parameters)
     
       # Stop the sporulation n(hr_after_spor) hours after sunrise
       sporstop <-  timedf[timedf$doy == i, "sunrise_hr"] + parameters[ ,"hr_after_spor"] %>% as.numeric() 
@@ -239,7 +254,7 @@ BlightR <- function(fun_df,
                  sum(daydf[daydf$doy == i, "sol_rad"]), #sum measured values
                  sum(daydf[daydf$doy == i, "sol_nasa"], na.rm = T) #otherwise use estimated values)
           )
-        surv_prob <- SolSurv(solar_rad, parameters, rounding = 7)
+        surv_prob <- SolSurv(solar_rad, parameters)
         
         ############################
         #Risk calculation
@@ -257,11 +272,14 @@ BlightR <- function(fun_df,
           inf = 0,
           surv_prob = 0,
           risk_si = 0,
-          risk_mi = round(risk_mi, 6),
+          risk_mi = risk_mi,
           risk = 0,
           stringsAsFactors =FALSE
         )
       result_ls [[i]]<-final
+      
+      
+      
       }else {
       ############################
       #Infection
@@ -273,8 +291,7 @@ BlightR <- function(fun_df,
       daydf[idx:nrow(daydf), "inf"] <-
         Infection(temp = daydf[idx:nrow(daydf), "temp"], 
                   rh = daydf[idx:nrow(daydf), "rhum"], 
-                  params_inf = parameters,
-                  rounding = 7)
+                  params_inf = parameters)
       
       
       
@@ -317,6 +334,7 @@ BlightR <- function(fun_df,
       #The estimated probablity of spore survival is calculated using 
       # The spore load was calculated as a product of total daily sporulation risk and the         
       # probability of spornagia survival as a function of solar radiation
+      
       solar_rad <-
         ifelse(!all(is.na(daydf[daydf$doy == i, "sol_rad"])), #if there are measured values
                sum(daydf[daydf$doy == i, "sol_rad"]), #sum measured values
@@ -364,9 +382,9 @@ BlightR <- function(fun_df,
         spor_cond = "yes",
         inf = max(daydf$cumul_inf, na.rm = TRUE),
         surv_prob =surv_prob,
-        risk_si = round(risk_si, 6),
-        risk_mi = round(risk_mi, 6),
-        risk = round(risk,6),
+        risk_si = risk_si,
+        risk_mi = risk_mi,
+        risk = risk,
         stringsAsFactors =FALSE
         )
 

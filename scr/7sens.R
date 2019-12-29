@@ -260,6 +260,29 @@ for (i in par_set_run){
   
   
   
+  #################################################################
+  #Calculate the partial AUC
+  #################################################################
+  
+  # source(here::here("scr","lib",  "pkg.R"))
+  # load( file = here::here("out", "default", "model_eval.Rdata"))
+  source(here::here("scr", "lib", "DiagFuns.R"))
+  # tpp_ev_ls <-  default_eval_lss[[1]]
+  # trt_ev_ls <-  default_eval_lss[[2]]
+  #  
+  eval_long <- EvalTable(tpp_ev_ls, trt_ev_ls)
+  
+  eval_long$model <- 
+    gsub("risk_", "R",  eval_long$model) %>% 
+    gsub("risk", "R",  .) %>% 
+    gsub("ir_R", "MIR",  .) %>% 
+    gsub("defMIR", "IR",  .) 
+  
+  eval_longer <- EvalCutoff(eval_long, 
+                            cutoffs =  c(0.8, 0.85, 0.9))
+  
+
+  
   
   # Get the evaluation data in long format
   eval_long <- 
@@ -287,69 +310,6 @@ for (i in par_set_run){
   
   
   
-  
-  pp <- 
-    eval_long %>%
-    ggplot(aes(spec, sens, color = model)) +
-    geom_hline(
-      yintercept = seq(0 , 1, 0.1),
-      size = 0.1,
-      color = "gray",
-      linetype = "dotted"
-    )+
-    geom_vline(
-      xintercept = red_df$reduction,
-      size = 0.1,
-      color = "gray",
-      linetype = "solid",
-      alpha= .5
-    )+
-    geom_point(size = .5) +
-    geom_line() +
-    scale_y_continuous(limits = c(0, 1),
-                       expand = c(0, 0),
-                       breaks = seq(0, 1, 0.1),
-                       name = "Proportion of predicted outbreaks") +
-    scale_x_continuous(
-      limits = c(0, 1),
-      expand = c(0, 0),
-      breaks = red_df$reduction,
-      labels = red_df$min_prot_dur_e,
-      name = "Proportion of treatment reduction from the 7-day application schedule"
-    ) +
-    scale_color_manual(values = my_pair)+
-    labs(color = "Model:")+
-    theme_bw() +
-    theme(
-      text = element_text(size = 10.5),
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank()
-    )
-  
-  p1 <- 
-    pp+
-    geom_hline(yintercept = c(.9,.8), 
-               linetype = "dashed",
-               size = .2)
-  
-  p2 <-
-    pp +
-    geom_hline(
-      yintercept = c(.95, .9, .85),
-      linetype = "dashed",
-      size = .1,
-      alpha = .5
-    ) +
-    coord_cartesian(ylim = c(0.8, 1), xlim = c(0.6, 1)) +
-    scale_y_continuous(
-      
-      breaks = seq(0.8, 1, 0.05),
-      name = "Proportion of predicted outbreaks"
-    ) 
-  
-  
-  
-  
   ggsave(filename = here::here("out", "eval", "graphs", paste0(i,".png")),  plot=p1)
   ggsave(filename = here::here("out", "eval", "graphs", paste0(i, "_zoom",".png")),  plot=p2)
   
@@ -357,91 +317,102 @@ for (i in par_set_run){
   save(eval_long, file = here::here("out","eval", "eval_long", paste0(i,".Rdata")))
   
   eval_long$model <-  as.character(eval_long$model)
-  eval_longer <- 
-    split(eval_long, eval_long$model) %>% 
-    
-    lapply(., function(fundf){
-      # fundf <- data.frame(fundf)
-      for(prop_tpp in c(0.8, 0.85, 0.9, .95)){
-        
-        if(fundf$sens[1] >prop_tpp){
-          # find the two nearest warning thresholds to the accepted decision threshold
-          closest_high <- 
-            fundf$sens[fundf$sens>prop_tpp] %>% tail(1)
-          
-          closest_low <-
-            fundf$sens[which(fundf$sens<prop_tpp)][1]
-          
-          dff <- fundf[fundf$sens >= closest_low& fundf$sens <= closest_high,]
-          spec <- dff$spec %>% unlist()
-          sens <- dff$sens %>% unlist
-          
-          value <- 
-            predict(lm(spec ~ sens ), data.frame(sens = prop_tpp))
-          
-          which(fundf$sens<prop_tpp)[1]
-          fundf <- 
-            add_row(fundf, 
-                    warning_thres = prop_tpp,
-                    model = unique(fundf$model),
-                    spec = value, 
-                    sens = prop_tpp,
-                    .before = which(fundf$sens<prop_tpp)[1])
-        }else{
-          fundf <- 
-            add_row(fundf, 
-                    warning_thres = prop_tpp,
-                    model = unique(fundf$model),
-                    spec = NA, 
-                    sens = prop_tpp,
-                    .before = 1)
-        }
-      }
-      return(fundf)
-    }
-    ) %>% 
-    bind_rows()
-  
-  # CAlculate the partial area under the curve and other diag perfomance indicatora
-  
-  fundf <- 
-    eval_longer %>% 
-    drop_na() %>% 
-    # filter(sens>= 0.80) %>% 
-    filter(model == "Rsi")
-  
-  fin <- 
-    eval_longer %>% 
-    drop_na() %>% 
-    # filter(sens>= 0.80) %>% 
-    split(., .$model) %>% 
-    lapply(., function(fundf){
-      dff <- 
-      fundf%>% 
-        filter(sens>= 0.80) %>% 
-        summarise(model = unique(model),
-                  out_miss = paste0(abs(362* max(sens) -362), "/362"),
-                  maxTPR = paste(c(max(sens) %>% round(4))*100, "%"),
-                  pAUCh = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
-                  pAUC = pracma::trapz(c( rev(spec), 1),
-                                       c(rev(sens),max(sens) )-.8)
-        )
-      dfff<- 
-      fundf%>% 
-        summarise(model = unique(model),
-                  AUC = pracma::trapz(c(rev(spec), 1), c(rev(sens), max(sens))),
-        )
-      left_join(dff,dfff, by = "model")
-      
-      # qplot( c( rev(fundf$spec), 1),c(rev(fundf$sens),max(fundf$sens) )-.8)
-    }
-    ) %>% 
-    bind_rows() %>% 
-    arrange(desc(pAUC))
+
   
   fin$eval <- i
   
   save(fin, file = here::here("out","eval", "diag_fin", paste0(i,".Rdata")))
+  
+  eval_longer <- EvalCutoff(eval_long, 
+                            cutoffs =  c(0.8, 0.85, 0.9))
+  
+  fin <- DiagPerformance(eval_longer = eval_longer,
+                         pAUCcutoff = .8,
+                         no_of_outbreaks = 362)
+  
+  #################################################################
+  #Diag plots
+  #################################################################
+  
+  #Produce labs that will contain the diagnostic information
+  finlab <- 
+    fin %>% 
+    arrange(desc(pAUC)) %>% 
+    mutate(pAUC = round(pAUC, 3)) %>% 
+    mutate(AUC = round(AUC, 3)) %>% 
+    select(-c(out_miss, AUC)) %>% 
+    select(model, pAUC, maxTPR) %>% 
+    unite( "lab" ,2:3, sep= "; ") %>% 
+    mutate(lab = paste0("(", lab, "%)"))
+  
+  eval_longerdf <- 
+    left_join(eval_longer, finlab, by = "model") %>% 
+    mutate(modellab = paste(model, lab)) %>% 
+    mutate(modellab = factor(modellab))
+  
+  #Set  color scheme
+  my_pair_lab <- my_pair
+  names(my_pair_lab) <- unique(eval_longer$modellab)
+  
+  
+  eval_longerdf %>% 
+    ggplot(aes(spec, sens, color = fct_rev(modellab))) +
+    geom_rect(mapping = aes( xmin =0, xmax=1, ymin = .8, ymax=1), fill = "lightgray", color = "white",alpha = .1) +
+    geom_hline(
+      yintercept = seq(0 , 1, 0.1),
+      size = 0.3,
+      color = "gray",
+      linetype = "dotted"
+    )+
+    geom_vline(
+      xintercept = red_df$reduction,
+      size = 0.35,
+      color = "gray",
+      linetype = "solid",
+      alpha= .3
+    )+
+    geom_hline(
+      yintercept = c(.95, .9, .85, .8),
+      linetype = "dashed",
+      size = .3,
+      alpha = .3
+    ) +
+    geom_point(size = .5,show.legend=FALSE) +
+    geom_line( size = .6) +
+    scale_x_continuous(
+      limits = c(0, 1),
+      expand = c(0, 0),
+      breaks = red_df$reduction,
+      labels = paste0(red_df$reduction, "\n", red_df$min_prot_dur_e),
+      name = "Treatment reduction rate (TRR) and the corresponding average fixed treatment schedule",
+      position = "top"
+    ) +
+    scale_color_manual(values = my_pair_lab)+
+    labs(color = "Model (pAUC; maxTPR):")+
+    theme_article() +
+    theme(
+      text = element_text(size = 12),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank()
+    ) +
+    theme(
+      text = element_text(size=12),
+      legend.position = c(.81, .31),
+      legend.text = element_text(size = 14),
+      legend.title = element_text(size = 14),
+      legend.key.width = unit(1, "cm")
+    ) +
+    guides(color = guide_legend(
+      nrow = 5,
+      byrow = TRUE,
+      title.position = "top",
+      # colour = guide_legend(override.aes = list(alpha = 1, size = 1))
+    ))+
+    scale_y_continuous(breaks = seq(0, 1, 0.05),
+                       limits = c(0, 1),
+                       name = "Proportion of predicted outbreaks (TPR)")+
+    ggsave(filename = here::here("out", "default", "model_eval_ribbon.png"), 
+           width = 8.5, height = 6.5, units = "in", dpi=820)
   
   
   
@@ -459,12 +430,6 @@ print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"),
 # source(here::here("scr", "lib", "GitCommit.R" ))
 
 
-finalres <- 
-  ls %>%
-  bind_rows()
-
-save(finalres, file = here::here("out", "eval", "final_diag.Rdata"))
-
 
 
 
@@ -484,14 +449,18 @@ save(finalres, file = here::here("out", "eval", "final_diag.Rdata"))
 
 ###############################################################
 ###############################################################
-#Diagnostic performance
+#Final tables diagnostic
 ###############################################################
+source(here::here("scr","lib",  "pkg.R"))
+source(here::here("scr", "lib", "funs.R"))
+source(here::here("scr", "lib", "DiagFuns.R"))
+
 par_set <- 
   readxl::read_xlsx( 
     here::here("scr", "model", "par_eval", "par_eval.xlsx"))[,"met_set"] %>% 
   unlist() %>% as.character()
 
-
+starttime <- Sys.time()
 
 
 lss <- list()
@@ -567,10 +536,19 @@ for (i in seq_along(par_set)){
 }
 
 
+
 print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"), 3)))
 
-# source(here::here("scr", "lib", "GitCommit.R" ))
+finalres <- 
+  lss %>%
+  bind_rows()
 
+save(finalres, file = here::here("out", "eval", "final_diag.Rdata"))
+
+
+
+# source(here::here("scr", "lib", "GitCommit.R" ))
+beepr::beep()
 
 
 
@@ -593,36 +571,15 @@ source(here::here("scr", "lib", "funs.R"))
 evaldf <-
   get(load(file = here::here("out", "eval", "final_diag.Rdata")))
 
-par_set <-
-  readxl::read_xlsx(here::here("scr", "model", "par_eval", "par_eval.xlsx"))[, "met_set"] %>%
-  unlist() %>% as.character()
+evaldf <- evaldf[evaldf$eval != "ShapeSpor4l",]
 
-#Load the evaluation data calculate perfomance
-ls <- list()
-for (i in seq_along(par_set)) {
-  fundf <-
-    get(load(here::here("out", "eval", "diag_fin", paste0(par_set[i], ".Rdata"))))
-  ls[[i]] <- fundf
-}
-
-par_set
-
-str_detect(par_set,"-")
-
-sapply(par_set, function(x) 
-  
-  ifelse(str_detect(x,"-"), substring(x, nchar(x)-2), substring(x, nchar(x)-1))
-  
-) %>% unlist
-
-substring(x, nchar(x)-2)
-
+evaldf[evaldf$eval == "ShapeSpor4l",]
+evaldf[evaldf$lev == 4,]
 ls[98]
 
 evaldf <- 
-  lss %>% 
+  evaldf %>% 
   bind_rows() %>% 
-  # filter(model == "risk_mi") %>% 
   dplyr:: filter(eval !="default") %>% 
   group_by(eval) %>%
   mutate(
@@ -641,29 +598,85 @@ evaldf <-
 unique(evaldf$par)  
 unique(evaldf$stage)  
 
-ggplot(evaldf)+
-  geom_line(aes(x = lev, pAUC ))+
-  # facet_wrap(model~par)
-  facet_grid(model~par)
+#Set  color scheme
+my_pair <- c(unikn::seecol(pal_unikn_pair)[c(1,7,9)])
 
-ggplot(evaldf)+
-  geom_smooth(aes(x = lev, pAUC , color = model, group = model), se = FALSE, span =1,method = 'loess')+
-  facet_wrap(par~stage)+
+names(my_pair) <- levels(evaldf$model)
+
+
+
+
+ggplot(evaldf) +
+  labs(color = "Model:",
+       xlab = "Level") +
+  theme_article() +
+  geom_vline(
+    xintercept = seq(-6 , 3, 1),
+    size = 0.24,
+    color = "gray"
+  ) +
+  geom_vline(
+    xintercept = 0,
+    size = 0.6,
+    color = "gray"
+  ) +
+  geom_smooth(
+    aes(
+      x = lev,
+      pAUC ,
+      color = model,
+      group = model
+    ),
+    se = FALSE,
+    span = .5,
+    method = 'loess',
+    size = .8
+  ) +
   labs(color = "Model:",
        xlab = "Level")+
-  theme_article()+
-  theme(legend.position = "top")+
-  ggsave(filename = here::here("out", "eval", "diag_graph", "model_eval.png"),
-         width = 8.5, height = 9, units = "in")
-
+  # geom_line(aes(x = lev, pAUC , color = model, group = model),size = .8)+
+  facet_wrap(stage ~ par) +
+  scale_color_manual(values = my_pair) +
+  theme(legend.position = "top") +
+  ggsave(
+    filename = here::here("out", "eval", "diag_graph", "model_eval.png"),
+    width = 8.5,
+    height = 9,
+    units = "in"
+  )
 shell.exec(here::here("out", "eval", "diag_graph", "model_eval.png"))
 
 
 
 
 ggplot(evaldf)+
-  geom_smooth(aes(x = lev, maxTPR , color = model, group = model), se = FALSE, span =.75,method = 'loess')+
+  labs(color = "Model:",
+       xlab = "Level") +
+  theme_article() +
+  geom_vline(
+    xintercept = seq(-6 , 3, 1),
+    size = 0.24,
+    color = "gray"
+  ) +
+  geom_vline(
+    xintercept = 0,
+    size = 0.6,
+    color = "gray"
+  ) +
+  geom_smooth(
+    aes(
+      x = lev,
+      maxTPR ,
+      color = model,
+      group = model
+    ),
+    se = FALSE,
+    span = .5,
+    method = 'loess',
+    size = .8
+  ) +
   facet_wrap(stage~par)+
+  scale_color_manual(values = my_pair) +
   theme_article()+
   labs(color = "Model:",
        xlab = "Level")+

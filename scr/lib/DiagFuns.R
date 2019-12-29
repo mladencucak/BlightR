@@ -153,3 +153,50 @@ left_join(trt_ev_long, tpp_ev_long, by = c("warning_thres", "model" ))
 return(eval_long)
 }
 
+EvalCutoff <- function(){
+  
+  split(eval_long, eval_long$model) %>% 
+    
+    lapply(., function(fundf){
+      
+      for(prop_tpp in c(0.8, 0.85, 0.9)){
+        
+        if(fundf$sens[1] >prop_tpp){
+          # find the two nearest warning thresholds to the accepted decision threshold
+          closest_high <- 
+            fundf$sens[fundf$sens>prop_tpp] %>% tail(1)
+          
+          closest_low <-
+            fundf$sens[which(fundf$sens<prop_tpp)][1]
+          
+          dff <- fundf[fundf$sens >= closest_low& fundf$sens <= closest_high,]
+          spec <- dff$spec %>% unlist()
+          sens <- dff$sens %>% unlist
+          
+          value <- 
+            predict(lm(spec ~ sens ), data.frame(sens = prop_tpp))
+          
+          which(fundf$sens<prop_tpp)[1]
+          fundf <- 
+            add_row(fundf, 
+                    warning_thres = prop_tpp,
+                    model = unique(fundf$model),
+                    spec = value, 
+                    sens = prop_tpp,
+                    .before = which(fundf$sens<prop_tpp)[1])
+        }else{
+          fundf <- 
+            add_row(fundf, 
+                    warning_thres = prop_tpp,
+                    model = unique(fundf$model),
+                    spec = NA, 
+                    sens = prop_tpp,
+                    .before = 1)
+        }
+      }
+      return(fundf)
+    }
+    ) %>% 
+    bind_rows()
+  
+}

@@ -68,7 +68,13 @@ time <-
 
 all_dates <- 
   c(seq.Date( as.Date("2017-05-01"),as.Date("2017-09-18"), by = "day" ), 
-    seq.Date( as.Date("2018-05-01"),as.Date("2018-09-18"), by = "day" ))
+    seq.Date( as.Date("2018-05-01"),as.Date("2018-09-18"), by = "day" ),
+    seq.Date( as.Date("2019-05-01"),as.Date("2019-09-18"), by = "day" )
+  )
+
+#total number of station/year data sets
+time %>% length()*length(unique(stations))
+
 
 #missing dates
 all_dates[!all_dates %in% time]
@@ -480,7 +486,7 @@ data_ls <-
 
 stopCluster(cl) # shut down the cluster
 start_time -  Sys.time() #time spend on loading the data
-rm(cl, obs_df, start_time, time, stations)
+rm(cl, obs_df, start_time)
 
 #Checks
 
@@ -560,7 +566,13 @@ df_loc$stna[df_loc$stna == "Moore Park"|df_loc$stna == "Moore_Park"|df_loc$stna 
 df_loc$stna[df_loc$stna == "DUNSANY"] <- "Dunsany"
 df_loc$stna[df_loc$stna == "GURTEEN"] <- "Gurteen"
 
+#prop succesfull
+prop_succesfull_data <- 
+  c(length(data_ls)/c(time %>% length()*length(unique(stations))))
+length(data_ls)
+c(time %>% length()*length(unique(stations))) -length(data_ls)
 
+100 - round(prop_succesfull_data *100 ,2)
 
 data_ls <- 
   lapply(data_ls, function(x) {
@@ -610,30 +622,32 @@ full_data %>%
 full_data %>% 
   group_by(hour_step, for_date) %>% 
   mutate(rhum_ob = as.numeric(rhum_ob)) %>% 
-  summarise( rmse = sqrt(mean(rhum - rhum_ob, na.rm = T)^2),
-             mse = mean(abs(rhum - rhum_ob), na.rm = T),
+  summarise( rmse = rmse(rhum_ob, rhum),
+             mse = mse(rhum_ob, rhum),
+             rsq = cor(rhum_ob, rhum),
              ccc = epiR::epi.ccc(
-               sol_rad,
-               sol_rad_ob,
+               rhum_ob,
+               rhum,
                ci = "z-transform",
                conf.level = 0.95,
                rep.measure = FALSE
-             )$rho.c[, 1]) %>% 
+             )$rho.c[, 1])%>% 
   ungroup() %>% 
   mutate(var = "rhum") ->xx 
 
 full_data %>% 
   group_by(day_step) %>% 
   mutate(rhum_ob = as.numeric(rhum_ob)) %>% 
-  summarise( rmse = sqrt(mean(rhum - rhum_ob, na.rm = T)^2),
-             mse = mean(abs(rhum - rhum_ob), na.rm = T),
+  summarise( rmse = rmse(rhum_ob, rhum),
+             mse = mse(rhum_ob, rhum),
+             rsq = cor(rhum_ob, rhum),
              ccc = epiR::epi.ccc(
-               sol_rad,
-               sol_rad_ob,
+               rhum_ob,
+               rhum,
                ci = "z-transform",
                conf.level = 0.95,
                rep.measure = FALSE
-             )$rho.c[, 1]) %>% 
+             )$rho.c[, 1])%>% 
   ungroup()  %>% 
   mutate(var = "rhum")->errors_daily_rh
 
@@ -667,16 +681,17 @@ ggplot(xx,aes(factor(hour_step), mse))+
 
 
 
-
+######################################################
 #Temp
+#################################################################
 full_data %>% 
   group_by(hour_step, for_date) %>% 
-  mutate(temp_ob = as.numeric(temp_ob)) %>% 
-  summarise( rmse = sqrt(mean(temp - temp_ob, na.rm = T)^2),
-             mse = mean(abs(temp - temp_ob), na.rm = T),
+  summarise( rmse = rmse(temp_ob, temp),
+             mse = mse(temp_ob, temp),
+             rsq = cor(temp_ob, temp),
              ccc = epiR::epi.ccc(
-               sol_rad,
-               sol_rad_ob,
+               temp_ob,
+               temp,
                ci = "z-transform",
                conf.level = 0.95,
                rep.measure = FALSE
@@ -687,11 +702,12 @@ full_data %>%
 full_data %>% 
   group_by(day_step) %>% 
   mutate(temp_ob = as.numeric(temp_ob)) %>% 
-  summarise( rmse = sqrt(mean(temp - temp_ob, na.rm = T)^2),
-             mse = mean(abs(temp - temp_ob), na.rm = T),
+  summarise( rmse = rmse(temp_ob, temp),
+             mse = mse(temp_ob, temp),
+             rsq = cor(temp_ob, temp),
              ccc = epiR::epi.ccc(
-               sol_rad,
-               sol_rad_ob,
+               temp_ob,
+               temp,
                ci = "z-transform",
                conf.level = 0.95,
                rep.measure = FALSE
@@ -734,8 +750,8 @@ ggplot(xx,aes(factor(hour_step), mse))+
 full_data %>% 
   group_by(hour_step, for_date) %>% 
   mutate(temp_ob = as.numeric(temp_ob)) %>% 
-  summarise( rmse = sqrt(mean(sol_rad - sol_rad_ob, na.rm = T)^2),
-             mse = mean(abs(sol_rad - sol_rad_ob), na.rm = T),
+  summarise(     rmse = rmse(sol_rad, sol_rad_ob),
+                 mse = mse(sol_rad, sol_rad_ob),
              rsq = cor(sol_rad, sol_rad_ob),
              ccc = epiR::epi.ccc(
                sol_rad,
@@ -749,20 +765,26 @@ full_data %>%
   mutate(var = "sol_rad") ->xx 
 
 errors_daily_sol <- 
-full_data %>% 
-  group_by(day_step) %>% 
-  mutate(sol_rad_ob = as.numeric(sol_rad_ob)) %>% 
-  summarise( rmse = sqrt(mean(sol_rad - sol_rad_ob, na.rm = T)^2),
-             mse = mean(abs(sol_rad - sol_rad_ob), na.rm = T),
-             rsq = cor(sol_rad, sol_rad_ob),
-             ccc = epiR::epi.ccc(
-               sol_rad,
-               sol_rad_ob,
-               ci = "z-transform",
-               conf.level = 0.95,
-               rep.measure = FALSE
-             )$rho.c[, 1]) %>% 
-  ungroup() %>% 
+  full_data %>%
+  group_by(id,day_step) %>%
+  mutate(sol_rad_ob = as.numeric(sol_rad_ob)) %>%
+  summarise(sol_rad = sum (sol_rad),
+            sol_rad_ob = sum(sol_rad_ob)) %>%
+  ungroup() %>%
+  group_by(day_step) %>%
+  summarise(
+    rmse = rmse(sol_rad, sol_rad_ob),
+    mse = mse(sol_rad, sol_rad_ob),
+    rsq = cor(sol_rad, sol_rad_ob),
+    ccc = epiR::epi.ccc(
+      sol_rad,
+      sol_rad_ob,
+      ci = "z-transform",
+      conf.level = 0.95,
+      rep.measure = FALSE
+    )$rho.c[, 1]
+  ) %>%
+  ungroup() %>%
   mutate(var = "sol_rad")
 
 ggplot(xx,aes(factor(hour_step), rmse))+
@@ -808,6 +830,28 @@ ggplot(errors_daily,aes(factor(daystep), rmse))+
 
 
 bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>% 
+  reshape2::melt(
+    .,
+    id.vars = c("var",  "day_step"),
+    # measure.vars = models,
+    variable.name = "ind",
+    value.name = "skill",
+    factorsAsStrings  = FALSE
+  ) %>% 
+  ggplot()+
+  geom_line(aes(day_step, skill, color = ind))+
+  theme_article()+
+  theme(legend.position = "right") +
+  facet_grid(ind~var, scales = "free" )+
+  scale_x_continuous(breaks = seq(1,10,1),labels = seq(1,10,1))+
+  labs(
+    colour = "Model",
+    title = "Validation of forecasted risk",
+    x = "Lead time (days)"
+  )
+
+
+
 
 
 

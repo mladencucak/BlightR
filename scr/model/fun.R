@@ -6,11 +6,9 @@
 Sporulation <-
   function(temp,
            rh,
-           parameters,
-           rounding = NULL
+           parameters
            ) {
     
-    if(is.null(rounding)){rounding = 6}
     #Import parameters
     #Temp factor
     TminSpor <- parameters[, "TminSpor"] %>% as.numeric()
@@ -47,7 +45,7 @@ Sporulation <-
     })
 
     sporulation <-  
-      round(sporulation_temp * sporulation_rh, rounding) 
+      c(sporulation_temp * sporulation_rh) 
     return(sporulation)
   } 
 
@@ -56,11 +54,9 @@ Sporulation <-
 ########################################################
 SolSurv <-
   function(sol,
-           params_solsurv,
-           rounding = NULL
-  ) {
+           params_solsurv
+           ) {
     
-    if(is.null(rounding)){rounding = 6}
     B0 <- params_solsurv[, "B0"] %>% as.numeric()
     B1 <- params_solsurv[, "B1"] %>% as.numeric()
     
@@ -70,7 +66,7 @@ SolSurv <-
     
     sol_surv <-  Survival(sol)
     
-    return(round(sol_surv, rounding))
+    return(sol_surv)
   }
 
 
@@ -82,11 +78,9 @@ SolSurv <-
 Infection <-
   function(temp,
            rh,
-           params_inf,
-           rounding = NULL
+           params_inf
   ) {
     
-    if(is.null(rounding)){rounding = 6}
     #Import parameters
     #Temp factor zoospore
     TminInf <- params_inf[, "TminInf"] %>% as.numeric()
@@ -182,7 +176,7 @@ Infection <-
       }
     })
     
-    infection = round(inf_temp * inf_rh, rounding)
+    infection = inf_temp * inf_rh
     return(infection)
   } 
 
