@@ -137,7 +137,6 @@ source(here::here("scr", "lib", "funs.R"))
 source(here::here("scr", "lib", "DiagFuns.R"))
 
 
-save(res_lss, file = here::here("out","eval", "out", paste0(i,".Rdata")))
 
 list.files(here::here("out", "eval", "out"))
 
