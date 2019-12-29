@@ -155,7 +155,7 @@ done <-
 if(length(done)== 0){
  stop("No evaluation outputs...check!")
 }else{
-  par_set_run <- par_set[par_set==done]
+  par_set_run <- par_set[par_set %in%done]
 }
 
 
