@@ -69,7 +69,7 @@ starttime <- Sys.time()
 if(length(done)== 0){
   par_set_run <- par_set
 }else{
-  par_set_run <- par_set[par_set!=done]
+  par_set_run <- par_set[par_set %in%done]
 }
 
 for (i in par_set_run){
