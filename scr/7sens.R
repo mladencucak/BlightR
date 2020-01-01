@@ -69,7 +69,7 @@ starttime <- Sys.time()
 if(length(done)== 0){
   par_set_run <- par_set
 }else{
-  par_set_run <- par_set[par_set %in%done]
+  par_set_run <- par_set[!par_set %in%done]
 }
 
 for (i in par_set_run){
@@ -98,21 +98,37 @@ for (i in par_set_run){
   # testing 
   # out_ls[[1]] %>% view()
   
-  out_trt <- pblapply(wth_ls, function(x)
+  #memory demanding/ split inot thee lists 
+  out_trt1 <- pblapply(wth_ls[1:100], function(x)
+    RunModel(x,
+             model_parameters = i,
+             run_type = "wth"),
+    cl = cl)
+  out_trt2 <- pblapply(wth_ls[101:200], function(x)
+    RunModel(x,
+             model_parameters = i,
+             run_type = "wth"),
+    cl = cl)
+  Sys.sleep(5)
+  out_trt3 <- pblapply(wth_ls[201:361], function(x)
     RunModel(x,
              model_parameters = i,
              run_type = "wth"),
     cl = cl)
   
+  out_trt <- c(out_trt1, out_trt2, out_trt3)
+  
+  rm(out_trt1, out_trt2, out_trt3)
+  
   res_lss <- list(out_ls, out_trt)
   save(res_lss, file = here::here("out","eval", "out", paste0(i,".Rdata")))
   
-  
+  rm(res_lss, out_ls, out_trt, cl)
   
   gc()
   
   print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
-  Sys.sleep(10)
+  Sys.sleep(5)
   
   
 }
@@ -121,7 +137,7 @@ for (i in par_set_run){
 print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"), 3)))
 
 # source(here::here("scr", "lib", "GitCommit.R" ))
-
+rm(lss,wth_ls)
 
 
 
@@ -162,7 +178,7 @@ if(length(done)== 0){
 starttime <- Sys.time()
 
 # ls <- list()
-cl <- makeCluster(detectCores()-1)
+cl <- makeCluster(detectCores())
 clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 
 
@@ -377,7 +393,7 @@ for (i in par_set_run){
   
   gc()
   Sys.sleep(5)
-  rm( p1, p2, eval_long )
+  rm( p1, p2, eval_long)
   print(paste0(i,": ",  time_length(Sys.time() - starttime, unit = "minutes")))
   
   
@@ -389,9 +405,10 @@ print(paste0(i,": ",  round(time_length(Sys.time() - starttime, unit = "hours"),
 
 # source(here::here("scr", "lib", "GitCommit.R" ))
 
-
-bind_rows(lss) %>% 
-  save(here::here("out", "eval", "final_diag.Rdata"))
+final_diag <- 
+bind_rows(lss) 
+  
+save(final_diag,file = here::here("out", "eval", "final_diag.Rdata"))
   
   
 
@@ -410,11 +427,7 @@ source(here::here("scr", "lib", "funs.R"))
 evaldf <-
   get(load(file = here::here("out", "eval", "final_diag.Rdata")))
 
-evaldf <- evaldf[evaldf$eval != "ShapeSpor4l",]
 
-evaldf[evaldf$eval == "ShapeSpor4l",]
-evaldf[evaldf$lev == 4,]
-ls[98]
 
 evaldf <- 
   evaldf %>% 
