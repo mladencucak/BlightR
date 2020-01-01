@@ -1,23 +1,18 @@
 
 source(here::here("scr","lib",  "pkg.R"))
-# library("readxl")
 source(here::here("scr", "lib", "funs.R"))
-
 load( file =here::here("out", "fore", "fore_model_out.Rdata"))
 
+#Prepare the data inlong format for the analysis 
 out_ls[[1]]
 out_ls[[1]]$id
 
 out_df <-
   out_ls %>%
   bind_rows() %>%
-  # select(-id) %>%
-  # unite("id", for_date, stna) %>%
   group_by(id) %>%
   mutate(day_step = doy - min(doy - 1)) %>%
   ungroup()
-
-
 
 models <-
   colnames(out_df[, grepl("risk" , names(out_df))])
@@ -34,15 +29,6 @@ dff <-
     factorsAsStrings  = FALSE
   ) %>%
   spread(set, risk)
-# %>%
-#   reshape2::melt( .,
-#                   id.vars = c("stna", "for_date", "day_step", "model", "obs"),
-#                   measure.vars= c("fore", "obs"),
-#                   variable.name = "set",
-#                   value.name = "pred",
-#                   factorsAsStrings  = FALSE
-#   ) %>%
-#   filter(set != "obs")
 
 dff$model <- 
   gsub("risk_", "R",  dff$model) %>% 
