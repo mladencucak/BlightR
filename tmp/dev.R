@@ -209,3 +209,10 @@ dists <-
 
 
 
+
+ logistic.int <- expression(n0*exp(r*t)/((1+n0*(exp(r*t)-1)/K)))
+ n0 <- 1
+ r <- 0.1
+ K <- 100
+ t <- 0:100
+ plot(t,eval(logistic.int),type="l",col="blue",xlab="Time",ylab="Population Size")

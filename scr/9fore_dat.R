@@ -608,10 +608,6 @@ full_data %>%
             Longitude = unique(long)) %>% 
   write_csv(here::here("out", "fore", "Stations.csv"))
 
-full_data %>% 
-  group_by(hour_step) %>% 
-  summarise( rmse = sqrt(mean(temp - temp_ob, na.rm = T)^2),
-             mse = mean(abs(temp - temp_ob), na.rm = T)) ->xx
 
 ####################################################################################
 #RH errors overall
@@ -623,14 +619,8 @@ full_data %>%
   mutate(rhum_ob = as.numeric(rhum_ob)) %>% 
   summarise( rmse = rmse(rhum_ob, rhum),
              mse = mse(rhum_ob, rhum),
-             rsq = cor(rhum_ob, rhum),
-             ccc = epiR::epi.ccc(
-               rhum_ob,
-               rhum,
-               ci = "z-transform",
-               conf.level = 0.95,
-               rep.measure = FALSE
-             )$rho.c[, 1])%>% 
+             rsq = cor(rhum_ob, rhum)
+             )%>% 
   ungroup() %>% 
   mutate(var = "rhum") ->xx 
 
@@ -662,8 +652,13 @@ ggplot(xx,aes(factor(hour_step), rmse))+
        x="Lead hours",
        y="RMSE")+
   theme_tufte()+ 
-  annotate("text",x = seq(12,228,24), y = max(xx$rmse)-2, label =as.character(round(errors_daily$rmse,2)) )+
-  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+  annotate("text",x = seq(12,228,24), y = max(xx$rmse)-2, label =as.character(round(errors_daily_rh$rmse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))+
+  ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "rh rmse .png"),
+         width = 8, 
+         height = 4,
+         units = "in",
+         dpi = 2000)
 
 ggplot(xx,aes(factor(hour_step), mse))+
   geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
@@ -675,8 +670,32 @@ ggplot(xx,aes(factor(hour_step), mse))+
        x="Lead hours",
        y="MSE")+
   theme_tufte()+ 
-  annotate("text",x = seq(12,228,24), y = max(xx$mse)-2, label =as.character(round(errors_daily$mse,2)) )+
-  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+  annotate("text",x = seq(12,228,24), y = max(xx$mse)-2, label =as.character(round(errors_daily_rh$mse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))+
+  ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "rh mse .png"),
+         width = 8, 
+         height = 4,
+         units = "in",
+         dpi = 2000)
+
+
+ggplot(xx,aes(factor(hour_step), rsq))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title="MSEs Relatve Humidity", 
+       subtitle="Boxplot of MSE hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="MSE")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$rsq)-2, label =as.character(round(errors_daily_rh$rsq,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))+
+  ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "rh rsq .png"),
+         width = 8, 
+         height = 4,
+         units = "in",
+         dpi = 2000)
 
 
 
@@ -687,14 +706,7 @@ full_data %>%
   group_by(hour_step, for_date) %>% 
   summarise( rmse = rmse(temp_ob, temp),
              mse = mse(temp_ob, temp),
-             rsq = cor(temp_ob, temp),
-             ccc = epiR::epi.ccc(
-               temp_ob,
-               temp,
-               ci = "z-transform",
-               conf.level = 0.95,
-               rep.measure = FALSE
-             )$rho.c[, 1]) %>% 
+             rsq = cor(temp_ob, temp)) %>% 
   ungroup() %>% 
   mutate(var = "temp") ->xx 
 
@@ -714,6 +726,7 @@ full_data %>%
   ungroup() %>% 
   mutate(var = "temp") ->errors_daily_temp
 
+
 ggplot(xx,aes(factor(hour_step), rmse))+
   geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
   geom_tufteboxplot() + 
@@ -724,21 +737,53 @@ ggplot(xx,aes(factor(hour_step), rmse))+
        x="Lead hours",
        y="RMSE")+
   theme_tufte()+ 
-  annotate("text",x = seq(12,228,24), y = max(xx$rmse)-max(xx$rmse)*0.01, label =as.character(round(errors_daily$rmse,2)) )+
-  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+  annotate("text",x = seq(12,228,24), y = max(xx$rmse)-max(xx$rmse)*0.01, label =as.character(round(errors_daily_temp$rmse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))+
+  ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "temp rmse .png"),
+         width = 8, 
+         height = 4,
+         units = "in",
+         dpi = 2000)
+
 
 ggplot(xx,aes(factor(hour_step), mse))+
   geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
   geom_tufteboxplot() + 
   # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
-  labs(title="MSE Temperature", 
-       subtitle="Boxplot of MSE hourly lead time as factor.",
+  labs(title="mse Temperature", 
+       subtitle="Boxplot of mse hourly lead time as factor.",
        # caption="Source: mpg",
        x="Lead hours",
-       y="MSE")+
+       y="mse")+
   theme_tufte()+ 
-  annotate("text",x = seq(12,228,24), y = max(xx$mse)-max(xx$mse)*0.01, label =as.character(round(errors_daily$mse,2)) )+
-  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))
+  annotate("text",x = seq(12,228,24), y = max(xx$mse)-max(xx$mse)*0.01, label =as.character(round(errors_daily_temp$mse,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))+
+  ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "temp mse .png"),
+         width = 8, 
+         height = 4,
+         units = "in",
+         dpi = 2000)
+
+
+
+ggplot(xx,aes(factor(hour_step), rsq))+
+  geom_vline(xintercept = seq(24,240,24), linetype="dotted", size=0.5)+
+  geom_tufteboxplot() + 
+  # theme(axis.text.x = element_text(angle=65, vjust=0.6)) + 
+  labs(title=expression("r" ~ R^2 ~  "Temperature"), 
+       subtitle="Boxplot of rsq hourly lead time as factor.",
+       # caption="Source: mpg",
+       x="Lead hours",
+       y="rsq")+
+  theme_tufte()+ 
+  annotate("text",x = seq(12,228,24), y = max(xx$rsq)-max(xx$rsq)*0.01, label =as.character(round(errors_daily_temp$rsq,2)) )+
+  scale_x_discrete(breaks= seq(0,240,12),labels= seq(0,240,12))+
+  ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "tmp rsq .png"),
+         width = 8, 
+         height = 4,
+         units = "in",
+         dpi = 2000)
+
 
 
 
@@ -838,18 +883,62 @@ bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>%
     factorsAsStrings  = FALSE
   ) %>% 
   ggplot()+
-  geom_line(aes(day_step, skill, color = ind))+
+  geom_line(aes(day_step, skill, color = var))+
   theme_article()+
   theme(legend.position = "right") +
-  facet_grid(ind~var, scales = "free" )+
+  facet_wrap(~ind, scales = "free", ncol =1 )+
   scale_x_continuous(breaks = seq(1,10,1),labels = seq(1,10,1))+
   labs(
-    colour = "Model",
+    colour = "Idicator",
     title = "Validation of forecasted risk",
     x = "Lead time (days)"
-  )
+  )+
+  ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "daily all indicators .png"),
+         width = 6, 
+         height = 4,
+         units = "in",
+         dpi = 2000)
 
 
+
+
+bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>% 
+  reshape2::melt(
+    .,
+    id.vars = c("var",  "day_step"),
+    # measure.vars = models,
+    variable.name = "ind",
+    value.name = "skill",
+    factorsAsStrings  = FALSE
+  ) %>% 
+  mutate(var = ifelse(var== "rhum", "Relative Humidity (%)", 
+                      ifelse(var == "sol_rad", "Solar Radiation (MJ/m2/day)",
+                             ifelse(var == "temp" ,  "Temperature (°C)", "")))) %>% 
+  filter(ind == "ccc") %>% 
+  ggplot()+
+  geom_line(aes(day_step, skill, color = var))+
+  theme_article()+
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = seq(1,10,1),labels = seq(1,10,1))+
+  scale_y_continuous(limits = c(0,1))+
+  scale_color_manual(values=c("#56B4E9", "#E69F00", "salmon"))+
+  labs(
+    colour = "Forecasted variable:",
+    x = "Lead time (days)",
+    y = "Concordnace Correlation Coefficient"
+  )+
+  theme(
+    text = element_text(size=12),
+    legend.position = c(.25, .22),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(13),
+    legend.key.width = unit(1, "cm")
+  )+
+  ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "daily .png"),
+         width = 7, 
+         height = 4,
+         units = "in",
+         dpi = 800)
 
 
 

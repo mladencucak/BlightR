@@ -24,8 +24,8 @@ Sporulation <-
 
     
     #Calculate temp factor
-    #Function to cacluate the sporulation temperature factor
-    sporulation_temp <- 
+    #Function to cacluate the hourly temperature sporulation risk  
+    SPORtemp <- 
     sapply(temp, function(x) {
       sporulation_temperature <-
         RfactSpor * ((TmaxSpor - x) / (TmaxSpor - ToptSpor) * ((x - TminSpor) / (ToptSpor - TminSpor)) ^ ((ToptSpor - TminSpor) / (TmaxSpor - ToptSpor))) ^  ShapeSpor
@@ -33,9 +33,9 @@ Sporulation <-
       return(sporulation_temperature)
     }) %>% unlist()
     
-    # Calculate the RH factor
+    #Function to cacluate the hourly temperature sporulation risk  
     rh <- ifelse(rh >=80, rh - 80, 0) #resize rh scale to 1-20
-    sporulation_rh <-
+    SPORrh <-
       sapply(rh, function(x) {
       spor_rh_hour <- 
       KSpor * n0Spor * exp(rSpor * x) / (KSpor + n0Spor * (exp(rSpor * x) - 1))
@@ -44,9 +44,10 @@ Sporulation <-
       return(spor_rh_hour)
     })
 
-    sporulation <-  
-      c(sporulation_temp * sporulation_rh) 
-    return(sporulation)
+    #Calculate the hourly sporulation risk
+    SPOR <- c(SPORtemp * SPORrh) 
+    
+    return(SPOR)
   } 
 
 ########################################################
@@ -64,9 +65,9 @@ SolSurv <-
       Pr <- 1 / (1 + exp(-(B0 - B1 * x)))
     }
     
-    sol_surv <-  Survival(sol)
+    daySURV <-  Survival(sol)
     
-    return(sol_surv)
+    return(daySURV)
   }
 
 
@@ -103,26 +104,26 @@ Infection <-
                               TminInfDir,ToptInfDir,TmaxInfDir,RfactInfDir,ShapeInfDir){
       temp <- c(0:34)
       
-      temp_inf_zoo <- sapply(temp, function(x) {
+      zooINFtemp <- sapply(temp, function(x) {
         Infection_temperature <-
           RfactInf * ((TmaxInf - x) / (TmaxInf - ToptInf) * ((x - TminInf) / (ToptInf - TminInf)) ^ ((ToptInf - TminInf) / (TmaxInf - ToptInf))) ^  ShapeInf
         Infection_temperature = ifelse(x < TminInf | x > TmaxInf, 0, Infection_temperature)
       }) %>% unlist() %>% as.numeric()
       
       #Function to calculate the Infection temperature factor     
-      temp_inf_direct <- sapply(temp, function(x) {
+      dirINFtemp <- sapply(temp, function(x) {
         Infection_temperature <-
           RfactInfDir * ((TmaxInfDir - x) / (TmaxInfDir - ToptInfDir) * ((x - TminInfDir) / (ToptInfDir - TminInfDir)) ^ ((ToptInfDir - TminInfDir) / (TmaxInfDir - ToptInfDir))) ^  ShapeInfDir
         Infection_temperature = ifelse(x < TminInfDir | x > TmaxInfDir, 0, Infection_temperature)
       }) %>% unlist()
       
       # Find the curve intersect
-      x <- which(temp_inf_zoo==RfactInf) #peek of zoospore germiantion
-      y <- which(temp_inf_direct==RfactInfDir) #peek of direct germination
+      x <- which(zooINFtemp==RfactInf) #peek of zoospore germiantion
+      y <- which(dirINFtemp==RfactInfDir) #peek of direct germination
       
       # Straight lines (empirical)
-      line1 <- data.frame(x = temp[x:y], y = temp_inf_direct[x:y])
-      line2 <- data.frame(x = temp[x:y], y = temp_inf_zoo[x:y])
+      line1 <- data.frame(x = temp[x:y], y = dirINFtemp[x:y])
+      line2 <- data.frame(x = temp[x:y], y = zooINFtemp[x:y])
       
       intersect <-  reconPlots::curve_intersect(line1, line2) %>% as.data.frame()
       
@@ -130,14 +131,14 @@ Infection <-
       return(InterTemp)
     }
     
-    InterTemp <-  
+    Tint <-  
       CalcIntersect(TminInf,ToptInf,TmaxInf,RfactInf,ShapeInf,
                                 TminInfDir,ToptInfDir,TmaxInfDir,RfactInfDir,ShapeInfDir)
     
     
     #Calculate temp factor
     #Function to calculate the Infection temperature factor
-    temp_inf_zoo <- sapply(temp, function(x) {
+    zooINFtemp <- sapply(temp, function(x) {
       Infection_temperature <-
         RfactInf * ((TmaxInf - x) / (TmaxInf - ToptInf) * ((x - TminInf) / (ToptInf - TminInf)) ^ ((ToptInf - TminInf) / (TmaxInf - ToptInf))) ^  ShapeInf
       Infection_temperature = ifelse(x < TminInf |
@@ -145,28 +146,29 @@ Infection <-
     }) %>% unlist()
     
     #Function to cacluate the Infection temperature factor
-    temp_inf_direct <- sapply(temp, function(x) {
+    dirINFtemp <- sapply(temp, function(x) {
       Infection_temperature <-
         RfactInfDir * ((TmaxInfDir - x) / (TmaxInfDir - ToptInfDir) * ((x - TminInfDir) / (ToptInfDir - TminInfDir)) ^ ((ToptInfDir - TminInfDir) / (TmaxInfDir - ToptInfDir))) ^  ShapeInfDir
-      Infection_temperature = ifelse(x < TminInfDir |
-                                       x > TmaxInfDir, 0, Infection_temperature)
+      
+      Infection_temperature <- 
+        ifelse(x < TminInfDir |x > TmaxInfDir, 0, Infection_temperature)
     })%>% unlist()
     
     
-    inf_temp <- 
-      ifelse(temp <= InterTemp, temp_inf_zoo, temp_inf_direct )
+    INFtemp <- 
+      ifelse(temp <= Tint, zooINFtemp, dirINFtemp )
     
     #RH factor
     RhminInf <- params_inf[, "RhminInf"]
     RhoptInf <- params_inf[, "RhoptInf"]
     
     
-    # Calculate the RH factor
+    # Calculate the hourly RH infection factor
     #fit linear model
     x <- c(RhminInf, RhoptInf) %>% as.numeric()
     coefs <- lm(c(0, 1) ~ x)[["coefficients"]]
     
-    inf_rh <- sapply(rh, function (rhum_val) {
+    INFlw <- sapply(rh, function (rhum_val) {
       if (rhum_val > RhminInf & rhum_val <= RhoptInf) {
         SporRh <-  coefs[["(Intercept)"]] + coefs[["x"]] * rhum_val
       } else if (rhum_val > RhoptInf & rhum_val <= 100) {
@@ -176,8 +178,9 @@ Infection <-
       }
     })
     
-    infection = inf_temp * inf_rh
-    return(infection)
+    #Calculate the daily infection
+    dayINF = INFtemp * INFlw
+    return(dayINF)
   } 
 
 
@@ -309,7 +312,7 @@ GetTimes <- function(fun_df) {
   # fun_df[fun_df$hour == 6, "daytime"] <- "sunrise"
   if(all(!str_detect(colnames(fun_df), fixed("lon", ignore_case=TRUE)))){  stop("No Longitude reference or it is not named: 'lon'!")}
   if(all(!str_detect(colnames(fun_df), fixed("lat", ignore_case=TRUE)))){  stop("No Latitude reference or it is not named: 'lat'!")}
-
+  
   lat <- fun_df[[ExtractCol(fun_df, "lat")]] 
   lon <- fun_df[[ ExtractCol(fun_df, "lon")]] 
   

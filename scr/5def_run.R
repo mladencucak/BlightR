@@ -303,7 +303,8 @@ fin %>%
   mutate(AUC = round(AUC, 3)) %>% 
   write_csv(here::here("out" ,"default", "Diag perf default.csv" ))
 
-shell.exec(here::here("out" ,"default", "Diag perf default.csv" ))
+
+# shell.exec(here::here("out" ,"default", "Diag perf default.csv" ))
 
 checkdf <- 
 eval_longer %>% filter(sens == .85) %>% select(model, spec)
@@ -332,7 +333,7 @@ eval_longer %>% filter(sens == .85) %>% select(model, spec)
 #################################################################
 
 
-#Produce labs that will contain the diagnostic information
+#MAke legend labels that will contain the diagnostic information
 finlab <- 
   fin %>% 
   arrange(desc(pAUC)) %>% 

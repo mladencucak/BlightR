@@ -305,7 +305,7 @@ g+
   egg::theme_article()+
   ggsave(here::here("out", "fig", "CCC of solar data.png"),
          width = 11, height = 11, units = "cm")
-```
+    ```
 
 Add the estimated solar radiation data to observed and change the indicator to 2, which will stand for nasa data.
 ```{r}

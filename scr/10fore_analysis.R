@@ -20,7 +20,8 @@ out_ls %>%
 
 out_ls <- split(out_df, out_df$id)
 head(out_ls[[1]])
-
+unique(out_ls[[1]]$set)
+length(out_ls)
 
 fun_df <-  out_ls[[1]]
 model <-  colnames(fun_df[, grepl("risk" , names(fun_df))])[1]
@@ -64,6 +65,7 @@ closest_low <-which(default_eval_lss[[1]][model]<prop_tpp)[1]
 
 tpp <- 
 default_eval_lss[[1]][model][closest_high:closest_low,] %>% unlist()
+
 # Find the risk estimate for these two thresholds
 risk <- 
 warn_t_df[default_eval_lss[[1]]["warning_thres"][closest_high:closest_low,] %>% unlist(),model] 

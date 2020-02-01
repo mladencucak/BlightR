@@ -144,6 +144,7 @@ rm(duration_of_season)
 save(red_df, file = here::here("out", "calib", "avg_reduction_def.Rdata"))
 
 
+
 ###################################################################################
 #Calculate the number of predicted outbreaks and treatments
 ###################################################################################
@@ -225,34 +226,17 @@ lapply(calib_res_ls[2][[1]], function(x){
 
 
 
-# source(here::here("scr","lib",  "pkg.R"))
-# load( file = here::here("out", "calib", "model_eval.Rdata"))
-# source(here::here("scr", "lib", "DiagFuns.R"))
-# tpp_ev_ls <-  calib_eval_lss[[1]]
-# trt_ev_ls <-  calib_eval_lss[[2]]
-#  
-eval_long <- EvalTable(tpp_ev_ls, trt_ev_ls)
-
-eval_long$model <- 
-  gsub("risk_", "R",  eval_long$model) %>% 
-  gsub("risk", "R",  .) %>% 
-  gsub("ir_R", "MIR",  .) %>% 
-  gsub("defMIR", "IR",  .) 
-
-eval_long$model <- 
-  factor(eval_long$model, levels = c(  "R", "Rsi","Rmi", "IR","MIR" ))
 
 
 #################################################################
 #Calculate the partial AUC
 #################################################################
-
-# source(here::here("scr","lib",  "pkg.R"))
-# load( file = here::here("out", "calib", "model_eval.Rdata"))
+source(here::here("scr","lib",  "pkg.R"))
+load( file = here::here("out", "calib", "model_eval.Rdata"))
 source(here::here("scr", "lib", "DiagFuns.R"))
-# tpp_ev_ls <-  calib_eval_lss[[1]]
-# trt_ev_ls <-  calib_eval_lss[[2]]
-#  
+tpp_ev_ls <-  calib_eval_lss[[1]]
+trt_ev_ls <-  calib_eval_lss[[2]]
+  
 eval_long <- EvalTable(tpp_ev_ls, trt_ev_ls)
 
 eval_long$model <- 
@@ -263,6 +247,9 @@ eval_long$model <-
 
 eval_longer <- EvalCutoff(eval_long, 
                           cutoffs =  c(0.8, 0.85, 0.9))
+
+save(eval_longer, file = here::here("out", "calib", "eval_longer.Rdata"))
+
 
 fin <- DiagPerformance(eval_longer = eval_longer,
                        pAUCcutoff = .8,
@@ -391,3 +378,4 @@ eval_longerdf %>%
          width = 8.5, height = 6.5, units = "in", dpi=820)
 
 shell.exec(here::here("out", "calib", "model_eval_ribbon.png"))
+shell.exec(here::here("out", "calib"))

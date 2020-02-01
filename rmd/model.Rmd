@@ -68,6 +68,7 @@ spor <-  spor_df$spor
 
 #Use minpack.lm function because nls apparently has a famouse "singular gradient issue"
   f <- spor~K*n0*exp(r*rh)/(K+n0*(exp(r*rh)-1))
+  
 m <-
   minpack.lm::nlsLM(
     formula = f,

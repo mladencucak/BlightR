@@ -1,13 +1,15 @@
-# source(here::here("scr", "pkg.R"))
+# source(here::here("scr","lib",  "pkg.R"))
 # load(file = here::here("dat", "outbreak&weather.Rdata"))
 # data_ls[[1]]-> wth
 # x-> wth
 
-#source(here::here("scr", "lib", "funs.R"))
+# source(here::here("scr", "lib", "funs.R"))
 # fun_df <-lss[[1]]
 # max_na = NULL
 # temporal_res = "daily" #resoulution of the final data to be returned, daily or hourly. if hourly returned at noon
 # run_type= "model"
+# model_parameters = "default"
+
 # model_parameters = "TminInf-3l"
 
 
@@ -17,7 +19,6 @@
 # run_type = "fore"
 # ir_run = TRUE
 # ir_def_run = TRUE
-# model_parameters = "default"
 # model_parameters = "calibration"
 # run_type= "fore"
 
@@ -29,7 +30,7 @@ BlightR <- function(fun_df,
                     return_cols = NULL
                     ) 
 {
-  #' Blight model.
+  #' BlightR model.
   #'
   #' This function calculates potato late blight risk.
   #' The risk needs to be calculated for a single location, so if the
@@ -37,7 +38,7 @@ BlightR <- function(fun_df,
   #' run separately. 
   #' 
   #' @param fun_df The weather data formated as data frame. 
-  #' @param max_na Maximum proportion of missing values. Set to 0.03 by default.  
+  #' @param max_na Maximum proportion of missing values. Set to 0.01 by default.  
   #' @param infill_gap Maximum alowed gap for missing value interpolation
   #' @param run_type Two running types determine the format of the final data frame. If it is "wth" then there will be more columns.
   #' @param return_cols User defined veto of column names to be returned with daily the model outputs. 
@@ -121,7 +122,7 @@ BlightR <- function(fun_df,
 
   
   #Define the start of sporulation 
-  # i = 169
+  # i = 136
   for(i in c(begin:end)){
     sporstart <- 
       timedf[ timedf$doy == c(i-1), "sunset_hr"] -
@@ -421,45 +422,8 @@ BlightR <- function(fun_df,
     left_join( timedf, bind_rows(result_ls),by = "doy") %>%
     select(-c("sunrise_hr", "sunset_hr"))
 
-#############################
-  #Cumulative risk 
-  ###########################
-  # CumulRisk <- function(x){
-  #   x <- fin$risk
-  #   y[1:2] <- x[1:2] 
-  #  for(i in c(2:length(x))){
-  #    decay <- max_time_cumul/100
-  #    
-  #   ifelse(x[i]>0&x[i+1] ==, 
-  #              x[i],
-  #                 )
-  #  }
-  # }
-  
-  # 
-  # fin$cumul_risk[3: nrow(fin)] <-
-  #   rollapply(fin$risk,
-  #             width = 3, #specify the widht of the window
-  #             sum,
-  #             align = "center") %>% round(6)
-  # 
-  #   
-  #  fin
-  # 
-  #  fin <- fin[3:nrow(fin),]
 
-  # fin[ , c("cumul_risk_si", "cumul_risk_mi", "cumul_risk")] <- NA
-  # 
-  #  fin$cumul_risk_si[!is.na(fin$risk_si)] <- 
-  #    stats::ave(fin$risk_si[!is.na(fin$risk_si)], cumsum(fin$risk_si[!is.na(fin$risk_si)] == 0), FUN = cumsum)
-  # 
-  #  fin$cumul_risk[!is.na(fin$risk)] <- 
-  #    stats::ave(fin$risk[!is.na(fin$risk)], cumsum(fin$risk[!is.na(fin$risk)] == 0), FUN = cumsum)
-  #  
-  #  fin$cumul_risk_mi[!is.na(fin$risk_mi)] <- 
-  #    stats::ave(fin$risk_mi[!is.na(fin$risk_mi)], cumsum(fin$risk_mi[!is.na(fin$risk_mi)] == 0), FUN = cumsum)
-  #  
-   
+     
    ###############################
    # Final results
    ###############################

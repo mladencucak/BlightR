@@ -1,7 +1,7 @@
 ########################################################
 #Filter data sets with low number of missing values
 ########################################################
-source(here::here("scr", "pkg.R"))
+source(here::here("scr","lib",  "pkg.R"))
 
 load(here::here("dat", "weather_infilled&sol_estim.Rdata"))
 
@@ -166,11 +166,13 @@ ireland <- bind_rows(ireland,ni)
 df_loc <- 
   weather %>% group_by(stna) %>% select(stna,lat,long, country) %>% summarise_all(unique) 
 
-df_loc$lab <-
+ df_loc$lab <-
   weather %>% 
   group_by(stna) %>% 
   summarise(years_available = length(unique(year))) %>% 
-  unite( col = lab, c("stna", "years_available")) %>% 
+  unite( col = lab, c("stna", "years_available"), sep = " (") %>% 
+    mutate(lab = paste0(lab, ")")) %>% 
+    ungroup() %>% 
   unlist()
 df_loc$open <-
   weather %>% 
@@ -212,18 +214,70 @@ ggplot() +
 
 
 
+library("ggspatial")
+library("sf")
+library("ggrepel")
 
-df_loc %>%   
-  filter(stna %in% stations) %>% 
-  ggplot() + 
-  geom_polygon(data = ireland, aes(x=long, y = lat, group = group), fill = "darkolivegreen3")  +
-  coord_fixed(1.5)+
-  geom_point( aes(x = long, y = lat, fill = "red", alpha = 0.8), size = 1, shape = 2) +
-  guides(fill=FALSE, alpha=FALSE, size=FALSE) +
-  ggrepel::geom_text_repel(aes(x = c(long), y = c(lat-0.05), label = lab),size = 3)+ 
-  # annotate("text",x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna, size = 2)+
-  ggthemes::theme_map()+
-  ggsave(file = paste0("./tmp/map_treatment_eval.png"), width = 15, height = 28, units = "cm")
+load(here::here("dat", "All_Ireland.RData"))
+
+
+df_loc_sf <- 
+  df_loc %>% 
+  mutate(colstna = ifelse(stna %in% c("Oak Park", "Dunsany", "Moore Park", "Johnstown", "Gurteen"), "Observed", "Observed and forecasted" )) %>%  
+  st_as_sf( agr = "lab",coords= c( "long","lat"),remove = FALSE)
+
+
+#Set coordinate reference system
+st_crs(df_loc_sf) <- 
+  st_crs(all_counties.sf)
+
+
+
+ggplot() +
+  geom_sf(
+    data = all_counties.sf,
+    color= "darkolivegreen3",
+    fill = "darkolivegreen3"
+  ) +
+  geom_sf(data = df_loc_sf, aes(fill = colstna,color = colstna ),shape = 17, size =2) +
+  geom_text_repel(data = df_loc_sf, 
+                  aes(x = long, y = lat, label = lab),
+                  size = 2.9
+                  # nudge_x = c(1, -1.5, 2, 2, -1), 
+                  # nudge_y = c(0.25, -0.25, 0.5, 0.5, -0.5)
+  ) +
+  scale_color_manual(name = "Data:",
+                     labels = c("Observed", "Observed&Forecast"),
+                     values = c("blue", "black")) +
+  scale_fill_manual(name = "Data:",
+                    labels = c("Observed", "Observed&Forecast"),
+                    values = c("blue", "black")) +
+  theme_bw(base_family = "Roboto Condensed",
+           base_size = 12) +
+  coord_sf(xlim = c(-11.4, -4.6), ylim = c(51.2, 55.65), expand = FALSE) +
+  annotation_north_arrow(location = "br", which_north = "true", 
+                         pad_x = unit(0.35, "in"),
+                         pad_y = unit(0.25, "in"),
+                         style = north_arrow_fancy_orienteering) +
+  labs(x = "Longitude", y = "Latitude")+
+  annotation_scale(location = "br", width_hint = 0.4) +
+  theme(
+    strip.background = element_blank(),
+    legend.position = c(.18, .91),
+    legend.box.background = element_rect(color = "black", size = .5),
+    legend.key = element_rect(colour = "transparent", fill = "white")
+  )+
+  
+  ggsave(
+    file = here::here("out" , "map.png"),
+    width = 15,
+    height = 15,
+    units = "cm",
+    dpi = 600
+  )
+
+shell.exec(here::here("out" , "map.png"))
+shell.exec(here::here("out" ))
 
 # library(leaflet)
 # 

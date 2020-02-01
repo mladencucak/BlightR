@@ -5,12 +5,45 @@
 # Source data
 ###################################################################################
 source(here::here("scr","lib",  "pkg.R"))
-library("readxl")
+
 source(here::here("scr", "lib", "funs.R"))
 
 
 load(file = here::here("dat", "outbreak&weather.Rdata"))
 load(file= here::here("dat", "treatment_no_estim.Rdata"))
+
+###################################################################################
+# MAke table of the evaluated parameters and values for different levels
+###################################################################################
+
+pars <- 
+  readxl::read_xlsx( 
+    here::here("scr", "model", "par_eval", "par_eval.xlsx"))
+pars <- 
+  pars %>% 
+  filter(met_level!= "default")
+
+parls <- list()
+for (i in unique(pars$met_par)) {
+  parls[[which(unique(pars$met_par)==i)]] <- pars[pars$met_par == i, c(i)]
+  names(parls[which(unique(pars$met_par)==i)] ) <- names( pars[pars$met_par == i, c(i)])
+}
+names(parls) <- unique(pars$met_par)
+
+par3ls <- parls[!names(parls) %in% c("RfactInf","RfactSpor")] 
+lvl <-   unique(pars[!pars$met_par %in% c("RfactInf","RfactSpor"), "met_level",]) 
+par3s <- bind_cols(lvl,par3ls)
+pars3t <- as.data.frame(t(par3s))
+pars3t <- add_column(pars3t, "Parameter" = rownames(pars3t), .before = "V1")
+
+par6ls <- parls[c("RfactInf","RfactSpor")]
+lvl <- unique(pars[pars$met_par %in% c("RfactInf","RfactSpor"), "met_level",])
+par6s <- bind_cols(lvl,par6ls)
+pars6t <- as.data.frame(t(par6s))
+pars6t <- add_column(pars6t, "Parameter" = rownames(pars6t), .before = "V1")
+
+write.csv(bind_rows(pars3t, pars6t), here::here("scr", "model", "par_eval", "Table.csv"), row.names = FALSE)
+
 
 ###################################################################################
 # Funs
@@ -56,6 +89,9 @@ par_set <-
 done <- 
   list.files(here::here("out", "eval", "out")) %>% 
   str_replace(".Rdata","")
+
+
+
 
 
 
@@ -263,6 +299,7 @@ for (i in par_set_run){
     },
     cl = cl) 
   Sys.sleep(10)
+  
   
   #################################################################
   #Calculate the partial AUC
@@ -480,7 +517,7 @@ ggplot(evaldf) +
       group = model
     ),
     se = FALSE,
-    span = .5,
+    span = .9,
     method = 'loess',
     size = .8
   ) +
