@@ -351,22 +351,23 @@ outlscat %>% head()
 
 
 #Set  color scheme
-my_pair_lab <- c(unikn::seecol(pal_unikn_pair)[c(1,7,9,15)], "#696969")
-names(my_pair_lab) <- unique(outlscat$model) %>% unlist()
+my_pair_lab <- c(unikn::seecol(pal_unikn_pair)[c(1,7,9)], "darkgray", "black")
+names(my_pair_lab) <- rev(unique(outlscat$model)) %>% unlist()
 
-
+prank <- 
 outlscat %>% 
   group_by(model,day_step) %>% 
   summarise(
     rank_cor = cor(obs_cat,fore_cat, method = "spearman")
   ) %>% 
   ungroup()  %>% 
+  mutate(model = factor(model, levels = c("Rsi", "Rmi", "R","MIR", "IR") )) %>%
   ggplot()+
   geom_line(aes(day_step, rank_cor, color = model))+
-  theme_article()+
+  theme_bw()+
   theme(legend.position = "right") +
-  scale_x_continuous(breaks = seq(1,10,1),labels = seq(1,10,1))+
-  scale_y_continuous(limits = c(0,1))+
+  scale_x_continuous(breaks = seq(1,10,1),labels = seq(1,10,1),minor_breaks = seq(1, 10, 1))+
+  scale_y_continuous(limits = c(0,1.03),breaks = seq(0,1,.2),labels = seq(0,1,.2),minor_breaks = seq(0,1,.2))+
   labs(
     colour = "Model:",
     x = "Lead time (days)",
@@ -376,8 +377,8 @@ outlscat %>%
   theme(
     text = element_text(size=12),
     legend.position = c(.81, .71),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 13),
+    legend.title = element_text(size = 13),
     legend.key.width = unit(1, "cm")
   )+
   ggsave(filename = here::here("out", "fore", "fig", "rank_cor.png"),
@@ -387,15 +388,25 @@ outlscat %>%
          dpi = 1020
   )
 
-shell.exec(here::here("out", "fore", "fig", "rank_cor.png"))
+# shell.exec(here::here("out", "fore", "fig", "rank_cor.png"))
 
 
+pcccfore <- readRDS( file =  here::here("out", "fore", "fig", "wth_vars", "CCCdaily_wth_vars.png"))
 
+pcccfore <- 
+  pcccfore+
+   theme(axis.title.x = element_blank())
+plist <- list(pcccfore, prank)
 
+ggpubr::ggarrange(plotlist = plist, 
+                  # widths = c(2.5,2.5),
+                  # heights = c(.5,.5),
+                  labels = c("a)","b)"),
+                  nrow = 2)+
+  ggsave(filename=  here::here("out", "fore", "fig", "ccc&rank_wth.png"),
+         width = 8, height =8, dpi = 720)
 
-
-
-
+shell.exec(here::here("out", "fore", "fig", "ccc&rank_wth.png"))
 
 
 

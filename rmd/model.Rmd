@@ -11,8 +11,92 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r pkg, warning=FALSE, message=FALSE}
 source(here::here("scr","lib", "pkg.R"))
+library("grid")
 
 ```
+## Beta function
+
+```{r}
+
+beta_df <- data.frame(temp = c(4:28))
+
+Tmin <- 6
+Topt <- 20
+Tmax <- 26
+Rfact <- 1 #set to default 1 
+Shape <-2 # parameter that determines the shape of curve
+
+#Function to cacluate the sporulation temperature factor     
+temp_dev <- sapply(beta_df$temp, function(x) {
+  temps <-
+    Rfact * ((Tmax - x) / (Tmax - Topt) * ((x - Tmin) / (Topt - Tmin)) ^ ((Topt - Tmin) / (Tmax - Topt))) ^  Shape
+  temps = ifelse(x < Tmin | x > Tmax, 0, temps)
+  
+})
+
+
+
+lab_size <-  10.5
+
+grobc <- grobTree(textGrob("c", x=0.58,  y=0.48, hjust=0,
+                           gp=gpar(fill = "white", coll = "black",fontsize=lab_size, fontface="italic")))
+
+grobr <- grobTree(textGrob("Rmax", x=0.645,  y=0.56, hjust=0,
+                           gp=gpar(fill = "white", coll = "black",fontsize=lab_size, fontface="italic")))
+
+grobTmin <- grobTree(textGrob("Tmin", x=0.2,  y=.2, hjust=0,
+                              gp=gpar(fill = "white", coll = "black",fontsize=lab_size, fontface="italic")))
+
+grobTopt <- grobTree(textGrob("Topt", x=0.705,  y=.91, hjust=0,
+                              gp=gpar(fill = "white", coll = "black",fontsize=lab_size, fontface="italic")))
+
+grobTmax <- grobTree(textGrob("Tmax", x=0.86,  y=0.2, hjust=0,
+                              gp=gpar(fill = "white", coll = "black",fontsize=lab_size, fontface="italic")))
+
+
+
+pbeta <- 
+ggplot()+
+  geom_line(aes(ifelse(beta_df$temp<Tmin|beta_df$temp>Tmax,NA, beta_df$temp),temp_dev))+
+  geom_hline(yintercept = 1, linetype = "dotted", color = "gray", size = .2)+
+  labs(y = "Development Factor",
+       x = "Temperature (˚C)")+
+  #add arrows and label for parameter c
+  geom_segment(aes(x = 15.55, y = .5, xend = 23.4, yend = .5), linetype = "solid",color = "darkgray",
+               arrow = arrow(length = unit(0.1, "inches"), ends = "both")
+  )+
+  annotation_custom(grobc)+
+  #add arrows and label for parameter Rmax
+  geom_segment(aes(x =  20, y = 0, xend = 20, yend = .99), linetype = "solid",color = "darkgray",
+               arrow = arrow(length = unit(0.1, "inches"), ends = "both")
+  )+
+  annotation_custom(grobr)+
+  #add arrows and label for parameter Tmin
+  geom_segment(aes(x =  Tmin, y = 0.15, xend = Tmin, yend = .02), linetype = "solid",color = "darkgray",
+               arrow = arrow(length = unit(0.1, "inches"))
+  )+
+  annotation_custom(grobTopt)+
+  #add arrows and label for parameter Topt
+  geom_segment(aes(x =  Topt+2, y = 1.02, xend = Topt + .2, yend =1), linetype = "solid",color = "darkgray",
+               arrow = arrow(length = unit(0.1, "inches"))
+  )+
+  annotation_custom(grobTmax)+
+  #add arrows and label for parameter Tmax
+  geom_segment(aes(x =  Tmax+1, y = 0.15, xend = Tmax, yend = .02), linetype = "solid",color = "darkgray",
+               arrow = arrow(length = unit(0.1, "inches"))
+  )+
+  annotation_custom(grobTmin)+
+  scale_x_continuous(limits = c(1,30), breaks = seq(0,30, 2),labels = seq(0,30, 2))+
+  scale_y_continuous(limits = c(0,1.1), breaks = seq(0,1, .2),labels = seq(0,1, .2))+
+  egg:: theme_article()+
+  ggsave(here::here("scr", "model", "Beta_fun.png"),
+         width = 7, height = 5, units = "in",
+         dpi = 820)
+
+ # rm(grobc, grobr, grobTmin, grobTopt, grobTmax, temp, temp_dev, Rfact, Shape, Tmax, Tmin, Topt)
+
+```
+
 ## The Model 
 
 ### Sporulation
@@ -49,12 +133,21 @@ spor_df <-  gather(spor_df, "wind", "spor", -rh)
 spor_df$spor <-  as.numeric(spor_df$spor)
 spor_df$wind <-  as.numeric(spor_df$wind)
 # spor_df$wind <-  factor(spor_df$wind, levels = c("0.3", "1.4", "5.5", "13.7"))
+
 ggplot(spor_df, aes(factor(spor_df$wind, levels = c("0.3", "1.4", "5.5", "13.7")), rh))+
   geom_tile(aes(fill = spor))+
   xlab("Wind (m/s)")+
-  scale_fill_gradient(low = "lightgray", high = "black")
+  ylab("Relative Humidity (%)")+
+  scale_fill_gradient(name = "No. of Spores", low = "white", high = "black")+
+  theme_article()+
+  ggsave(
+    file = here::here("scr", "model", "fig" , "Harrison&Lowe_Sporulation.png"),
+    width = 5.1,
+    height = 3.6,
+    dpi = 800
+  )
 
-spor_df <-  spor_df[spor_df$wind == 1.4 ,] %>% arrange(., rh)
+ spor_df <-  spor_df[spor_df$wind == 1.4 ,] %>% arrange(., rh)
 ```
   
   *!!The rate parameter is not good here and this needs refitting*
@@ -114,20 +207,35 @@ sporulation_rh <-
 
 sporulation_rh
 
+prhspor <- 
 ggplot() +
+  geom_hline(yintercept = 1, linetype = "dotted", color = "gray", size = .2)+
   geom_line(data =newdata, aes(newdata$rhvec+80, sporulation_rh,color = "Fitted"), size = 0.8) + 
   geom_point(data = fit_data, aes(rh, spor,color = "Observed")) +
+  scale_y_continuous(limits = c(0,1.1), breaks = seq(0,1, .2),labels = seq(0,1, .2))+
   scale_color_manual(values = c("Fitted" = "gray",
                                 "Observed" = "black"))+
-  labs(y = "Sporulation Proportion", x = "RH (%)", colour = "Data")+
-  egg::theme_article()
+  labs(y = "RH Sporulation Factor", x = "Relative Humidity (%)", colour = "Data:")+
+  egg::theme_article()+
+    theme(
+    legend.position = c(.2, .64),
+    legend.text = element_text(size = 13.3),
+    legend.title = element_text(size = 13.3),
+    legend.key.width = unit(1, "cm")
+  ) +
+  ggsave(
+    file = here::here("scr", "model", "fig" , "spor_rh.png"),
+    width = 6,
+    height = 4.5,
+    dpi = 800
+  )
 ```
   
 Temperature relation to sporulation.  
   
 ```{r}
 
-temp <- c(4:28)
+spor_t <- data.frame( temp = c(4:28))
 
 TminSpor <- 6
 ToptSpor <- 20
@@ -136,19 +244,33 @@ RfactSpor <- 1 #set to default 1
 ShapeSpor <-2 # parameter that determines the shape of curve
 
 #Function to cacluate the sporulation temperature factor     
-temp_spor <- sapply(temp, function(x) {
+temp_spor <- sapply(spor_t$temp, function(x) {
   sporulation_temperature <-
     RfactSpor * ((TmaxSpor - x) / (TmaxSpor - ToptSpor) * ((x - TminSpor) / (ToptSpor - TminSpor)) ^ ((ToptSpor - TminSpor) / (TmaxSpor - ToptSpor))) ^  ShapeSpor
   sporulation_temperature = ifelse(x < TminSpor | x > TmaxSpor, 0, sporulation_temperature)
   
 })
+
+psportemp <- 
 ggplot()+
-  geom_line(aes(temp, temp_spor))+
-  scale_x_continuous(limits = c(1,30))+
-  labs(y = "Sporulation factor",
+  geom_line(aes(spor_t$temp, temp_spor))+
+  labs(y = "Temperature Sporulation Factor",
        x = "Temperature (˚C)")+
   scale_x_continuous(breaks = seq(0,30, 2),labels = seq(0,30, 2))+
-  egg:: theme_article()
+  scale_y_continuous(limits = c(0,1.1), breaks = seq(0,1, .2),labels = seq(0,1, .2))+
+ egg::theme_article()+
+    theme(
+    legend.position = c(.2, .64),
+    legend.text = element_text(size = 13.3),
+    legend.title = element_text(size = 13.3),
+    legend.key.width = unit(1, "cm")
+  ) +
+   ggsave(
+    file = here::here("scr", "model", "fig" , "spor_temp.png"),
+    width = 5.1,
+    height = 3.6,
+    dpi = 800
+  )
 ```
 
 Save parameters into a separate file.  
@@ -231,10 +353,10 @@ Visualisation of the overall effect of this function.
 #Sporulation
 require(plotly)
 
-rhum = seq(80,100, 0.1)
-temp = seq(4,27, 0.1)
+rhumt = seq(80,100, 0.1)
+tempt = seq(4,27, 0.1)
 
-spor <- outer(temp, rhum, Sporulation, params)
+spor <- outer(tempt, rhumt, Sporulation, params)
 
 f1 <- list(
   family = "Arial, sans-serif",
@@ -298,7 +420,7 @@ library(viridis)
 color_var <- rev(plasma(256))
 
 p <- 
-plot_ly(x= rhum,y=temp,z=spor, type="surface",
+plot_ly(x= rhumt,y=tempt,z=spor, type="surface",
         colors = color_var) %>% 
   layout(
     title = tit,
@@ -330,18 +452,25 @@ B1 <- 0.45
 Survival <- function(x) {
   Pr <- 1 / (1 + exp(-(B0 - B1 * x)))
 }
+
+ psurv <- 
 data.frame(
   sol_rad = seq(0,30, 0.1)
 ) %>% 
   mutate(surv = Survival(sol_rad)) %>% 
 ggplot()+
+  geom_hline(yintercept = 1, linetype = "dotted", color = "gray", size = .2)+
   geom_line(aes(sol_rad, surv))+
   scale_y_continuous( limits = c(0,1.1),  breaks = seq(0,1.4,0.2))+
   scale_x_continuous(limits = c(0,15))+
   labs(title = "Mortality of Sporangia Due To Solar Radiation", 
-       x = expression("Solar Radiation "(MJ/m^2)),
-       y = "Mortality Probability")+
-  theme_bw()
+       x = expression("Solar radiation"~(MJ/m^2/day)),
+       # x = paste0("Solar radiation (MJ/", expression(m^2)),
+       y = "Daily Survival Probability")+
+  theme_article()+
+  ggsave(here::here("scr", "model", "fig", "survival.png"),
+         width = 7, height = 5, units = "in",
+         dpi = 820)
 ``` 
   
 Save the parameters into a separate file.   
@@ -386,7 +515,7 @@ The leaf wetness is calculated using two linear functions.
 #  Check the newforge data for leaf wetness could it be used? 
 #  
 
-temp <- c(0:32)
+temp <- c(0:30)
 
 #Direct infection function
 TminInf <- 6
@@ -431,18 +560,31 @@ intersect <-  reconPlots::curve_intersect(line1, line2) %>% as.data.frame()
 
 InterTemp <- intersect[, "x"]
 
+pinftemp <- 
 ggplot() +
+  geom_hline(yintercept = 1, linetype = "dotted", color = "gray", size = .2)+
   geom_line(aes(temp, temp_inf_direct, linetype = "Direct")) +
   geom_line(aes(temp, temp_inf_zoo, linetype = "Zoospore")) +
-  scale_linetype("Infection pathway") +
+  scale_linetype("Infection pathway:") +
   geom_point(data = intersect, aes(x, y, shape = "Intercept"),  size = 3) +
   scale_shape("") +
-  scale_x_continuous(limits = c(1, 30)) +
+  scale_y_continuous(limits = c(0,1.1), breaks = seq(0,1, .2),labels = seq(0,1, .2))+
+
   labs(title = "Dependance of infection on temperature",
-       y = "Infection factor",
+       y = "Temperature Infection Factor",
        x = "Temperature (˚C)") +
   scale_x_continuous(breaks = seq(0, 30, 2), labels = seq(0, 30, 2)) +
-  egg::theme_article()
+  egg::theme_article()+
+    egg::theme_article()+
+      theme(
+    legend.position = c(.85, .84),
+    # legend.text = element_text(size = 13.3),
+    # legend.title = element_text(size = 13.3),
+    legend.key.width = unit(1, "cm")
+  ) +
+  ggsave(here::here("scr", "model", "fig", "temp_inf.png"),
+         width = 7, height = 5, units = "in",
+         dpi = 820)
 
 
 ```
@@ -469,14 +611,19 @@ inf_rh <- sapply(rhum, function (rhum_val) {
   }
 })
 
+pinfrh <- 
 ggplot()+
   geom_line(aes(rhum, inf_rh))+
-  scale_x_continuous(limits = c(1, 30)) +
+  geom_hline(yintercept = 1, linetype = "dotted", color = "gray", size = .2)+
   labs(title = "Dependance of Infection On Relative Humidity",
-       y = "Infection factor",
-       x = "Relative Humidity") +
+       y = "RH Infection Factor",
+       x = "Relative Humidity (%)") +
+  scale_y_continuous(limits = c(0,1.1), breaks = seq(0,1, .2),labels = seq(0,1, .2))+
   scale_x_continuous(breaks = seq(RhminInf, 100, 2), labels = seq(RhminInf, 100,2 )) +
-  egg::theme_article()
+  theme_article()+
+  ggsave(here::here("scr", "model",  "fig","rh_inf.png"),
+         width = 7, height = 5, units = "in",
+         dpi = 820)
 
 ```
 
@@ -616,15 +763,15 @@ Infection <-
 
 Visualisation of the overal effect of this function. 
 
-```{r}
+```{r 3dinf, out.width='100%'}
 
 #Infection
 require(plotly)
 
-rhum = seq(80,100, 0.1)
-temp = seq(4,27, 0.1)
+rhumt = seq(80,100, 0.1)
+tempt = seq(4,27, 0.1)
 
-inf_ar <- outer(temp, rhum, Infection, params_inf)
+inf_ar <- outer(tempt, rhumt, Infection, params_inf)
 
 
 
@@ -691,7 +838,7 @@ library(viridis)
 color_var <- rev(plasma(256))
 
 p <- 
-plot_ly(x= rhum,y=temp,z=inf_ar, type="surface",
+plot_ly(x= rhumt,y=tempt,z=inf_ar, type="surface",
         colors = color_var) %>% 
   layout(
     title = tit,
@@ -714,6 +861,30 @@ htmlwidgets::saveWidget(p, "Infection.html")
 ```
 
 ![3D surface plot of Infection function](Infection.png)
+
+## Plot functions
+Plot of functions in a single graph. 
+
+```{r}
+
+plotls <- list(pbeta, psurv, psportemp , prhspor, pinftemp, pinfrh)
+
+plotls <- 
+lapply(plotls,function(x)
+  x+
+  theme(plot.title = element_blank(),
+        plot.background = element_rect(size=.4,linetype="solid",color="black"))
+  )
+ggpubr::ggarrange(plotlist = plotls, 
+                  # heights = c(1.2,1,1),
+                  font.label = list(size = 14.5, face = "bold"),
+                  labels = paste0(letters[1:length(plotls)], ")"),
+                  ncol= 2, nrow= 3)+
+  ggsave(filename=here::here("scr", "model",  "fig","together.png"),
+         width = 11.5, height =11, dpi = 820)
+
+ shell.exec(here::here("scr", "model",  "fig","together.png"))
+```
 
 
 # Geo location 
@@ -884,13 +1055,7 @@ GetTimes <- function(fun_df, params_time) {
 }
 ```  
 
-## The cmulative risk function
 
-
-```{r}
-# TODO chech exponential decay
-
-```
 
 # Parameteres 
 We will store  all parameteres in a single file.   

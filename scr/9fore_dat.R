@@ -901,7 +901,7 @@ bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>%
 
 
 
-
+ pcccfore <- 
 bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>% 
   reshape2::melt(
     .,
@@ -917,10 +917,10 @@ bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>%
   filter(ind == "ccc") %>% 
   ggplot()+
   geom_line(aes(day_step, skill, color = var))+
-  theme_article()+
+  theme_bw()+
   theme(legend.position = "right") +
-  scale_x_continuous(breaks = seq(1,10,1),labels = seq(1,10,1))+
-  scale_y_continuous(limits = c(0,1))+
+  scale_x_continuous(breaks = seq(1,10,1),labels = seq(1,10,1),minor_breaks = seq(1, 10, 1))+
+  scale_y_continuous(limits = c(0,1.03),breaks = seq(0,1,.2),labels = seq(0,1,.2),minor_breaks = seq(0,1,.2))+
   scale_color_manual(values=c("#56B4E9", "#E69F00", "salmon"))+
   labs(
     colour = "Forecasted variable:",
@@ -929,9 +929,9 @@ bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>%
   )+
   theme(
     text = element_text(size=12),
-    legend.position = c(.25, .22),
-    legend.text = element_text(size = 12),
-    legend.title = element_text(13),
+    legend.position = c(.77, .82),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(11),
     legend.key.width = unit(1, "cm")
   )+
   ggsave(filename = here::here("out", "fore", "fig", "wth_vars", "daily .png"),
@@ -940,7 +940,7 @@ bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>%
          units = "in",
          dpi = 800)
 
-
+saveRDS(pcccfore, file =  here::here("out", "fore", "fig", "wth_vars", "CCCdaily_wth_vars.png"))
 
 
 
