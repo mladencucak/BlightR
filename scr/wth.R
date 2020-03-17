@@ -1,13 +1,13 @@
 ########################################################
 #Filter data sets with low number of missing values
 ########################################################
-source(here::here("scr", "pkg.R"))
+source(here::here("scr", "lib", "pkg.R"))
 
 # load(here::here("dat", "weather_infilled&sol_estim.Rdata"))
  load(here::here("dat", "full_IE_data_2001_2018.RData"))
 
 
-load(file=paste0("./data/weather_data/", "full_IE_data_2001_2018.RData"))
+# load(file=paste0("./data/weather_data/", "full_IE_data_2001_2018.RData"))
 
 
 #Data set descriptions
@@ -33,7 +33,7 @@ lapply(wth_ls, function(x) {
   ggridges::geom_ridgeline(aes(x=years,y=as.factor(stna),fill = country,height = 0.4),stat="identity")+
   
   
-  scale_y_discrete(name = "Year")+
+  scale_y_discrete(name = "")+
   ggtitle("Weatehr data availability per year")+
   ggridges:: theme_ridges(center = TRUE, font_size = 10)
 

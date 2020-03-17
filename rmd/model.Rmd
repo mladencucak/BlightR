@@ -577,7 +577,7 @@ ggplot() +
   egg::theme_article()+
     egg::theme_article()+
       theme(
-    legend.position = c(.85, .84),
+    legend.position = c(.82, .88),
     # legend.text = element_text(size = 13.3),
     # legend.title = element_text(size = 13.3),
     legend.key.width = unit(1, "cm")
@@ -873,15 +873,16 @@ plotls <-
 lapply(plotls,function(x)
   x+
   theme(plot.title = element_blank(),
+        text = element_text(size= 13),
         plot.background = element_rect(size=.4,linetype="solid",color="black"))
   )
 ggpubr::ggarrange(plotlist = plotls, 
                   # heights = c(1.2,1,1),
-                  font.label = list(size = 14.5, face = "bold"),
+                  font.label = list(size = 15, face = "bold"),
                   labels = paste0(letters[1:length(plotls)], ")"),
                   ncol= 2, nrow= 3)+
   ggsave(filename=here::here("scr", "model",  "fig","together.png"),
-         width = 11.5, height =11, dpi = 820)
+         width = 10.2, height =11, dpi = 820)
 
  shell.exec(here::here("scr", "model",  "fig","together.png"))
 ```

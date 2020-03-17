@@ -25,7 +25,30 @@ summary(outbreaks[, c("yr", "lon", "lat")])
 outbreaks$date <- lubridate::mdy(outbreaks$date)
 str(outbreaks)
 
-#Add Irish stations
+library(MASS) 
+
+outbreaks %>%
+  mutate(mon = month(date),
+         day = day(date)) %>%
+  group_by(mon, day) %>%
+  unite(., date, mon, day, sep = "-") %>%
+  mutate(d = as.Date(date, format = "%m-%d")) %>%
+  ggplot(aes(d, stat(density))) +
+  geom_histogram(colour = "black",
+                 fill = "gray",
+                 binwidth = 2) +
+  geom_density() +
+  labs(y = "Frequency of outbreaks",
+       x = "Months") +
+  theme_article() +
+  ggsave(here::here("out", "fig", "Outbreaks per date.png"),
+         width = 6,
+         height = 4.5,
+         dpi = 620)
+
+
+
+  #Add Irish stations
 stations_ni <- 
   mutate_if(stations_ni , is.factor, as.character)
 
@@ -255,8 +278,10 @@ sort(dists)
                           round(quantile(dists)[c(4)], digits = 2),
                           ")", sep = ""))
  
+
+  
 ggplot()+ 
-  geom_histogram(aes(dists), bins = 40)+
+  geom_histogram(aes(dists), bins = 40,colour = "black", fill = "gray")+
   egg::theme_article()+
   geom_text(data = tmp.lab, x = 27, y = 33, label = tmp.lab$lab)+
   labs(x = "The distance from source of weather data (km)",

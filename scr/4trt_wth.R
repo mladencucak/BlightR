@@ -105,7 +105,7 @@ stations <- c(
   "Derrylin",
   "Derrylin Cornahoule",
   "Ballywatticock",
-  #Esclude IE stations
+  #ROI stations
   ie_stna
 )
 
@@ -113,16 +113,19 @@ length(unique(weather$stna))
 length(stations)
 #34
 
-#Add id
+glimpse(weather)
+
+#Remove stations whihc are not a part of the analysis
 wth <- filter(weather,stna %in% stations)
 
-#length
+#The number of station/years
 unique(wth$id) %>% length()
 
 wth_ls <- split(wth, wth$id)
 
 
-sapply(wth_ls, function(x) mean(is.na(x[,c( "temp", "rhum")])))%>% as.vector() %>% round(3)
+sapply(wth_ls, function(x) mean(is.na(x[,c( "temp", "rhum")])))%>% 
+  as.vector() %>% round(3) %>% sort()
 
 
 
@@ -139,19 +142,19 @@ lapply(wth_ls, function(x) length(unique(x$year))) %>%
   bind_cols() %>% t() %>% sum()
 
 #Weaher data avialability per year
-lapply(wth_ls, function(x) {
-  years <-  unique(x$year)
-  stna <- rep(unique(x$stna), length(years))
-  country <-  rep(unique(x$country), length((years)))
-  data.frame(stna = stna,years = years, country = country)
-}) %>% 
-  bind_rows() %>%
-  group_by(country) %>% 
-  ggplot() + 
-  ggridges::geom_ridgeline(aes(x=years,y=as.factor(stna),fill = country,height = 0.4),stat="identity")+
-  scale_y_discrete(name = "Station Name")+
-  ggtitle("Weather Data For The Treatment Evaluation")+
-  ggridges:: theme_ridges(center = TRUE, font_size = 10)
+# lapply(wth_ls, function(x) {
+#   years <-  unique(x$year)
+#   stna <- rep(unique(x$stna), length(years))
+#   country <-  rep(unique(x$country), length((years)))
+#   data.frame(stna = stna,years = years, country = country)
+# }) %>% 
+#   bind_rows() %>%
+#   group_by(country) %>% 
+#   ggplot() + 
+#   ggridges::geom_ridgeline(aes(x=years,y=as.factor(stna),fill = country,height = 0.4),stat="identity")+
+#   scale_y_discrete(name = "Station Name")+
+#   ggtitle("Weather Data For The Treatment Evaluation")+
+#   ggridges:: theme_ridges(center = TRUE, font_size = 10)
 
 
 ########################################################
@@ -159,15 +162,13 @@ lapply(wth_ls, function(x) {
 ########################################################
 
 library("maps")
-ireland = fortify(map_data("world", region = "ireland"))
-ni = fortify(map_data("world", region = "uk"))
-ni <- ni[ni$subregion == "Northern Ireland",]
-ireland <- bind_rows(ireland,ni)
 df_loc <- 
-  weather %>% group_by(stna) %>% select(stna,lat,long, country) %>% summarise_all(unique) 
+  wth %>%  
+  mutate(stna = ifelse(stna == "JohnstownII", "Johnstown Castle", stna)) %>% 
+  group_by(stna) %>% select(stna,lat,long, country) %>% summarise_all(unique) 
 
  df_loc$lab <-
-  weather %>% 
+   wth %>% 
   group_by(stna) %>% 
   summarise(years_available = length(unique(year))) %>% 
   unite( col = lab, c("stna", "years_available"), sep = " (") %>% 
@@ -175,55 +176,61 @@ df_loc <-
     ungroup() %>% 
   unlist()
 df_loc$open <-
-  weather %>% 
+  wth %>% 
   group_by(stna) %>% 
   summarise(open = min(unique(year)),
             closed = max(unique(year))) %>% 
   unite( col = lab, c("stna", "open", "closed")) %>% 
   unlist()
 
-ggplot() + 
-  geom_polygon(data = ireland, aes(x=long, y = lat, group = group), fill = "darkolivegreen3")  +
-  coord_fixed(1.5)+
-  geom_point(data = df_loc, aes(x = long, y = lat, fill = "red", alpha = 0.8), size = 1, shape = 2) +
-  guides(fill=FALSE, alpha=FALSE, size=FALSE) +
-  ggrepel::geom_text_repel(aes(x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna),size = 3)+ 
-  # annotate("text",x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna, size = 2)+
-  ggthemes::theme_tufte()+
-  ggsave(file = paste0("./tmp/all_stationmap.png"), width = 15, height = 28, units = "cm")
-
-#Plot NI 
-
-ggplot() + 
-  geom_polygon(data = ni, aes(x=long, y = lat, group = group), fill = "darkolivegreen3")  +
-  coord_fixed(1.5)+
-  geom_point(data = df_loc[df_loc$country=="NI",], aes(x = long, y = lat, color = "red"), size = 1, shape = 2) +
-  guides(fill=FALSE, alpha=FALSE, size=FALSE) +
-  # ggrepel::geom_text_repel(aes(x = c(df_loc[df_loc$country=="NI",]$long), 
-  #                              y = c(df_loc[df_loc$country=="NI",]$lat-0.05), 
-  #                              label = df_loc[df_loc$country=="NI",]$stna),size = 3)+ 
-  annotate("text",x = c(df_loc[df_loc$country=="NI",]$long), 
-           y = c(df_loc[df_loc$country=="NI",]$lat-0.02), 
-           label = df_loc[df_loc$country=="NI",]$open, size = 2)+
-  ggthemes::theme_tufte()+
-  theme(legend.position = "none")+
-  labs(title = "Locations of weather stations in Northern Ireland")+
-  ggsave(file = paste0("./tmp/NI_stationmap.png"), width = 15, height = 15, units = "cm")
-
-
-
+# ireland = fortify(map_data("world", region = "ireland"))
+# ni = fortify(map_data("world", region = "uk"))
+# ni <- ni[ni$subregion == "Northern Ireland",]
+# ireland <- bind_rows(ireland,ni)
+# 
+# ggplot() + 
+#   geom_polygon(data = ireland, aes(x=long, y = lat, group = group), fill = "darkolivegreen3")  +
+#   coord_fixed(1.5)+
+#   geom_point(data = df_loc, aes(x = long, y = lat, fill = "red", alpha = 0.8), size = 1, shape = 2) +
+#   guides(fill=FALSE, alpha=FALSE, size=FALSE) +
+#   ggrepel::geom_text_repel(aes(x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna),size = 3)+ 
+#   # annotate("text",x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna, size = 2)+
+#   ggthemes::theme_tufte()+
+#   ggsave(file = paste0("./tmp/all_stationmap.png"), width = 15, height = 28, units = "cm")
+# 
+# #Plot NI 
+# 
+# ggplot() + 
+#   geom_polygon(data = ni, aes(x=long, y = lat, group = group), fill = "darkolivegreen3")  +
+#   coord_fixed(1.5)+
+#   geom_point(data = df_loc[df_loc$country=="NI",], aes(x = long, y = lat, color = "red"), size = 1, shape = 2) +
+#   guides(fill=FALSE, alpha=FALSE, size=FALSE) +
+#   # ggrepel::geom_text_repel(aes(x = c(df_loc[df_loc$country=="NI",]$long), 
+#   #                              y = c(df_loc[df_loc$country=="NI",]$lat-0.05), 
+#   #                              label = df_loc[df_loc$country=="NI",]$stna),size = 3)+ 
+#   annotate("text",x = c(df_loc[df_loc$country=="NI",]$long), 
+#            y = c(df_loc[df_loc$country=="NI",]$lat-0.02), 
+#            label = df_loc[df_loc$country=="NI",]$open, size = 2)+
+#   ggthemes::theme_tufte()+
+#   theme(legend.position = "none")+
+#   labs(title = "Locations of weather stations in Northern Ireland")+
+#   ggsave(file = paste0("./tmp/NI_stationmap.png"), width = 15, height = 15, units = "cm")
+# 
+# 
+# 
 
 
 library("ggspatial")
 library("sf")
 library("ggrepel")
 
+#load the shape file
 load(here::here("dat", "All_Ireland.RData"))
 
 
 df_loc_sf <- 
   df_loc %>% 
-  mutate(colstna = ifelse(stna %in% c("Oak Park", "Dunsany", "Moore Park", "Johnstown", "Gurteen"), "Observed", "Observed and forecasted" )) %>%  
+  mutate(colstna = ifelse(stna %in% c("Oak Park", "Dunsany", "Moore Park", "Johnstown Castle", "Gurteen"), "Observed", "Observed and forecasted" )) %>%  
   st_as_sf( agr = "lab",coords= c( "long","lat"),remove = FALSE)
 
 
@@ -247,10 +254,10 @@ ggplot() +
                   # nudge_y = c(0.25, -0.25, 0.5, 0.5, -0.5)
   ) +
   scale_color_manual(name = "Data:",
-                     labels = c("Observed", "Observed&Forecast"),
+                     labels = c("Observed &\nForecast","Observed"),
                      values = c("blue", "black")) +
   scale_fill_manual(name = "Data:",
-                    labels = c("Observed", "Observed&Forecast"),
+                    labels = c("Observed &\nForecast","Observed" ),
                     values = c("blue", "black")) +
   theme_bw(base_family = "Roboto Condensed",
            base_size = 12) +
@@ -263,7 +270,7 @@ ggplot() +
   annotation_scale(location = "br", width_hint = 0.4) +
   theme(
     strip.background = element_blank(),
-    legend.position = c(.18, .91),
+    legend.position = c(.137, .9),
     legend.box.background = element_rect(color = "black", size = .5),
     legend.key = element_rect(colour = "transparent", fill = "white")
   )+

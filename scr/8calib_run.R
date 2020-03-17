@@ -226,8 +226,6 @@ lapply(calib_res_ls[2][[1]], function(x){
 
 
 
-
-
 #################################################################
 #Calculate the partial AUC
 #################################################################
@@ -296,31 +294,38 @@ fin %>%
 #################################################################
 
 
-#Produce labs that will contain the diagnostic information
+#MAke legend labels that will contain the diagnostic information
 finlab <- 
   fin %>% 
-  arrange(desc(pAUC)) %>% 
+  # arrange(desc(pAUC)) %>% 
   mutate(pAUC = round(pAUC, 3)) %>% 
   mutate(AUC = round(AUC, 3)) %>% 
   select(-c(out_miss, AUC)) %>% 
   select(model, pAUC, maxTPR) %>% 
-  unite( "lab" ,2:3, sep= "; ") %>% 
+  arrange(model) %>% 
+unite( "lab" ,2:3, sep= "; ") %>% 
   mutate(lab = paste0("(", lab, "%)"))
 
 eval_longerdf <- 
-  left_join(eval_longer, finlab, by = "model") %>% 
+  
+  mutate(eval_longer, model= factor(model, levels = c(  "R", "Rsi","Rmi", "IR","MIR" ))) %>% 
+  left_join(., finlab, by = "model") %>% 
   mutate(modellab = paste(model, lab)) %>% 
-  mutate(modellab = factor(modellab))
+  mutate(modellab = factor(modellab)) %>% 
+  arrange(model)
+
+
 
 #Set  color scheme
-my_pair_lab <- c(unikn::seecol(pal_unikn_pair)[c(1,7,9,15)], "#696969")
-names(my_pair_lab) <- unique(eval_longer$modellab)
+my_pair_lab <- c(unikn::seecol(pal_unikn_pair)[c(1,7,9)], "darkgray", "black")
+names(my_pair_lab) <- unique(eval_longerdf$modellab)
 
 
-
-eval_longerdf %>% 
-  ggplot(aes(spec, sens, color = fct_rev(modellab))) +
-  geom_rect(mapping = aes( xmin =0, xmax=1, ymin = .8, ymax=1), fill = "lightgray", color = "white",alpha = .1) +
+p <- 
+  
+  ggplot() +
+  geom_rect(mapping = aes( xmin =0, xmax=1, ymin = .8, ymax=1), 
+            fill = "#D7DBDD", color = "white",alpha = .1) +
   geom_hline(
     yintercept = seq(0 , 1, 0.1),
     size = 0.3,
@@ -340,8 +345,10 @@ eval_longerdf %>%
     size = .3,
     alpha = .3
   ) +
-  geom_point(size = .5,show.legend=FALSE) +
-  geom_line( size = .6) +
+  geom_point(aes(spec, sens, color = fct_rev(modellab)), data = eval_longerdf,
+             size = .5,show.legend=FALSE, alpha = .9) +
+  geom_line(aes(spec, sens, color = fct_rev(modellab)), data = eval_longerdf,
+            size = .6, alpha = .9) +
   scale_x_continuous(
     limits = c(0, 1),
     expand = c(0, 0),
@@ -356,13 +363,10 @@ eval_longerdf %>%
   theme(
     text = element_text(size = 12),
     panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank()
-  ) +
-  theme(
-    text = element_text(size=12),
-    legend.position = c(.81, .31),
-    legend.text = element_text(size = 14),
-    legend.title = element_text(size = 14),
+    panel.grid.minor = element_blank(),
+    legend.position = c(.16, .64),
+    legend.text = element_text(size = 13.3),
+    legend.title = element_text(size = 13.3),
     legend.key.width = unit(1, "cm")
   ) +
   guides(color = guide_legend(
@@ -373,9 +377,58 @@ eval_longerdf %>%
   ))+
   scale_y_continuous(breaks = seq(0, 1, 0.05),
                      limits = c(0, 1),
-                     name = "Proportion of predicted outbreaks (TPR)")+
+                     name = "Proportion of predicted outbreaks (TPR)")
+
+
+g <- 
+  p+
+  theme(
+    legend.position = "none",
+    text = element_text(size = 12),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    plot.background = element_rect(colour = "black", fill = "white", size = .3)
+  )+
+  coord_cartesian(ylim = c(0.8, 1), xlim = c(0.58, 1)) 
+
+
+# Create inset plots
+lb <- .57 #left border of the inset plot
+rb <- .97 #right border of the inset plot
+ub <- 0.48 #upper border of the inset plot
+
+polydata <- data.frame(x = c(lb, 1.0, 1.0, lb, lb),
+                       y = c(.79, .79, 1.0, 1.0, .79))
+linedata <- data.frame(x = c(lb, .4 , 1.0, rb , lb, .4, 1, rb),
+                       y = c(.79, .0 , .99,ub, 1  , ub , .8, 0),
+                       id = c("a","a", "b", "b" , "c", "c", "d", "d"))
+
+p +
+  geom_path(data = polydata,
+            aes(x, y),
+            alpha = .5 ,
+            size = .4) +
+  geom_line(
+    data = linedata,
+    aes(x, y, group = id),
+    linetype = "dashed",
+    alpha = .5,
+    size = .4
+  ) +
+  annotation_custom(
+    grob = ggplotGrob(g),
+    xmin = .4,
+    xmax = rb,
+    ymin = -.02,
+    ymax = ub
+  )+
   ggsave(filename = here::here("out", "calib", "model_eval_ribbon.png"), 
          width = 8.5, height = 6.5, units = "in", dpi=820)
 
 shell.exec(here::here("out", "calib", "model_eval_ribbon.png"))
 shell.exec(here::here("out", "calib"))
+
+
+
