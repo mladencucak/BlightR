@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 # options(todor_rmd=TRUE)
 ```
 
@@ -57,52 +57,10 @@ weather <- weather[weather$year>=2003,]
 save(weather, file= here::here("dat", "weather_infilled.Rdata"))
 ```
 
-## Data cleaning step
-
-Skipped because there is a potential to data even if threre is a big proportion missing.
-```{r}
-# lengthbefore <- nrow(weather)
-# 
-# # Acceptable level of missing values for main variables of interest
-# # Select any station to get the vector of time lenght for model runs (incl. leap year) 
-# x <- weather[with( weather, year == 2001& stna== "Aldergrove"& doy %in% c(118:276)), ]
-# na_prop <- 0.2
-# c(x$temp,x$rhum, x$rain) %>% length() *na_prop ; rm(x)
-# # 343.44 na for three variables should be ok. Probably a few mising days
-# # Set maximum alowed missing for a single variable to 10%
-# na_prop_single <- 0.2
-# 
-# 
-# # Exclude years with too many missing values during period of interest
-# wth_ls <- split(weather,  list(weather$stna, weather$year) )
-# 
-# #First check if there are any duplicate rows
-# wth_ls <- lapply(wth_ls, function(x) distinct(x))
-# 
-# 
-# acceptable <-sapply(wth_ls, function(x) {
-#   x <- x[x$doy %in% c(118:276),] 
-#   mean(is.na(c(x$temp,x$rhum))) <=na_prop &
-#     mean(is.na(x$temp)) <= na_prop_single &
-#     mean(is.na(x$rhum)) <= na_prop_single 
-# }) #Check if there are any duplicate rows
-# wth_ls <- lapply(wth_ls, function(x) distinct(x))
-# beepr::beep("fanfare")
-# 
-# wth_ls <- wth_ls[as.vector(acceptable, mode = "logical")]; rm(acceptable)
-# beepr::beep("fanfare")
-# 
-# weather <- bind_rows(wth_ls); rm(wth_ls)
-# lengtafter <- nrow(weather)
-# 
-# lengthbefore - lengtafter
-
-```
-
 ## Solar radiation data
 
-Solar radiation data for Northern Irish 
-
+Solar radiation data for Northern Irish stations is downloaded form NASA, using `nasapower` package. Code cunks are not evaluated because the data was already obtained (and it is a lengthy process). 
+Note: This function needs active interent connection.
 ```{r sol_dwnld, eval=FALSE}
 
 library("nasapower")
@@ -153,7 +111,8 @@ load( file= here::here("dat", "weather_infilled.Rdata"))
 
 sol_df <-  read_csv(here::here("dat", "sol_ls.csv"))
 str(sol_df)
-sol_df$hour <-  12
+
+
 mean(is.na(sol_df$sol_nasa))
 
 #Some of missing values are recorede as -99 and we shall remove them 
@@ -161,20 +120,14 @@ sol_df <-  sol_df[sol_df$sol_nasa >= 0, ]
 
 #Join the data. The daily values will be added to 12th hour
 #This does not make difference because the model uses total amount of daily radiation
+sol_df$hour <- 12
 weather <- 
 weather %>% 
   left_join(sol_df, by = c("stna", "short_date", "hour")) 
 
 
  
- 
- # split(weather, )
- # weather <- 
- # weather %>% 
- #   group_by(short_date) %>% 
- #   mutate(sol_rad = ifelse(sum(sol_rad, na.rm = TRUE) == 0, NA, sol_rad ))
 
- 
 #The data for Mullingar station looks awfull so I will just remove it. 
 weather[weather$stna == "Mullingar", "sol_rad"] <- NA
 
@@ -193,10 +146,7 @@ test_sol <-
  
 head(test_sol)
 
-#Some daily sums of solar radiation are equal to 0 which is incorrect
- test_sol <- test_sol[test_sol$sol_rad > 0, ] 
 
- 
 # test_sol[test_sol$sol_nasa<0.1]
 test_sol[test_sol$sol_rad<1 & test_sol$sol_nasa>3  & test_sol$stna == "Oak Park",] 
 
@@ -232,7 +182,7 @@ test_sol %>%
 They all seem to be pretty good. Valentia is the only one that is a bit off.  
 There is an indication of some bias between measured and estimated data. 
 
-```{r plotcors_per_station, warning= FALSE}
+```{r plotcors_per_station_two, warning= FALSE}
 test_sol %>% 
   mutate(month = month(short_date)) %>% 
   filter(month %in% c(5:9)) %>% 
@@ -247,7 +197,7 @@ test_sol %>%
   labs(color = "Source",
        y = "Estimated",
        x = "Measured solar radiation (MJ/m^2/day)" )+
-  egg::theme_article()
+  egg::theme_article()+
   ggsave(here::here("out", "fig", "Correlations of solar data Observed vs estimated.png"),
          width = 18, height = 18, units = "cm")
 
@@ -308,9 +258,15 @@ g+
     ```
 
 Add the estimated solar radiation data to observed and change the indicator to 2, which will stand for nasa data.
-```{r}
+```{r merge_solar, eval=FALSE}
+# weather$short_date <-as.Date(weather$date_time)
+# weather$year <-as.Date(weather$date_time)
+
+weather <- 
+unite(weather, col = id,  c(stna, year, short_date))
+
 wth_ls <- 
-split(weather, unite(weather, col = c(stna, year, short_date)) )
+split(weather,weather$id)
 
 wth_ls <- 
 lapply(wth_ls, function(x)
@@ -332,31 +288,132 @@ save(weather, file= here::here("dat", "weather_infilled&sol_estim.Rdata"))
 ```
 
 ## Map stations
+```{r libs_map, warning = FALSE, message=FALSE}
+list.of.packages <-
+  c(
+    "tidyverse",
+    "maps",
+    "here",
+    "ggthemes",
+    "ggrepel",
+    "sf",
+    "ggspatial",
+    "leaflet"
+  )
+
+new.packages <-
+  list.of.packages[!(list.of.packages %in% installed.packages()[, "Package"])]
+
+#Download packages that are not already present in the library
+if (length(new.packages))
+  install.packages(new.packages)
+
+if (length(new.packages))
+  install.packages(new.packages, repos = c(CRAN="https://cran.r-project.org/"))
+
+packages_load <-
+  lapply(list.of.packages, require, character.only = TRUE)
+
+#Print warning if there is a problem with installing/loading some of packages
+if (any(as.numeric(packages_load) == 0)) {
+  warning(paste("Package/s", paste(list.of.packages[packages_load != TRUE]), "not loaded!"))
+} else {
+  print("All packages were successfully loaded.")
+}
+
+rm(packages_load, list.of.packages, new.packages)
+```
 
 ```{r}
+#stations selected for the analysis
 
-library("maps")
-ireland = map_data("world", region = "ireland")
-ni = map_data("world", region = "uk")
-ni <- ni[ni$subregion == "Northern Ireland",]
-ireland <- bind_rows(ireland,ni)
+
+load(here::here("dat", "All_Ireland.RData"))#shape file for irish counties
+
+#stations selected for the analysis
 df_loc <- 
-  weather %>% group_by(stna) %>% select(stna,lat,long) %>% summarise_all(unique) 
-map <- 
-  ggplot() + 
-  geom_polygon(data = ireland, aes(x=long, y = lat, group = group), fill = "darkolivegreen3")  +
-  coord_fixed(1.5)+
-  geom_point(data = df_loc, aes(x = long, y = lat, fill = "red", alpha = 0.8), size = 1, shape = 2) +
-  guides(fill=FALSE, alpha=FALSE, size=FALSE) +
-  ggrepel::geom_text_repel(aes(x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna),size = 2)+ 
-  # annotate("text",x = c(df_loc$long), y = c(df_loc$lat-0.05), label = df_loc$stna, size = 2)+
-  ggthemes::theme_tufte()
-ggsave(map,file = here::here("tmp", "stationmap.png"))
-map
+  read.csv( here::here("dat", "stations_final.csv"))
 
-# png(map, filename = "./temp/EB_analysis/map.png")
-library(leaflet)
+#Convert to simple features object
+df_loc_sf <- 
+  df_loc %>% 
+  mutate(colstna = ifelse(stna %in% c("Oak Park", "Dunsany", "Moore Park", "Johnstown", "Gurteen"), "Observed", "Observed and forecasted" )) %>%  
+  st_as_sf( agr = "lab",coords= c( "long","lat"),remove = FALSE)
 
+
+#Set coordinate reference system
+st_crs(df_loc_sf) <- 
+  st_crs(all_counties.sf)
+
+basemap <- 
+ggplot() +
+  # Plot borders (shapefile)
+  geom_sf(
+    data = 
+      all_counties.sf,
+    color= "darkolivegreen3",
+    fill = "darkolivegreen3"
+  ) +
+  #Set the theme
+  theme_bw(base_family = "Roboto Condensed",
+           base_size = 12 #Change the overall font size 
+           ) +
+  #limit the plotting area
+  coord_sf(xlim = c(-11.4, -4.6), ylim = c(51.2, 55.65), expand = FALSE) +
+  # Define names for labs
+  labs(x = "Longitude", y = "Latitude")+
+  #add fancy anotation
+  annotation_north_arrow(location = "br", which_north = "true", 
+                         pad_x = unit(0.35, "in"),
+                         pad_y = unit(0.25, "in"),
+                         style = north_arrow_fancy_orienteering) +
+  
+  annotation_scale(location = "br", width_hint = 0.4) 
+
+
+basemap+
+  geom_sf(
+    data = df_loc_sf,
+    aes(fill = colstna, color = colstna),
+    shape = 23,
+    size = 2
+  ) +
+  #Add names of stations
+  geom_text_repel(data = df_loc_sf, 
+                  aes(x = long, y = lat, label = lab),
+                  size = 2.7
+                  # nudge_x = c(1, -1.5, 2, 2, -1), 
+                  # nudge_y = c(0.25, -0.25, 0.5, 0.5, -0.5)
+  ) +
+  #Change the border color. This section can be removed in single color of point is ok
+  scale_color_manual(name = "Data:",
+                     labels = c("Observed", "Observed&Forecast"),
+                     values = c("blue", "black")) +
+  #change the fill manually
+  scale_fill_manual(name = "Data:",
+                    labels = c("Observed", "Observed&Forecast"),
+                    values = c("blue", "black")) +
+  theme(
+    strip.background = element_blank(),
+    legend.position = c(.18, .91), #place position of the legend inside plotting area
+    legend.box.background = element_rect(color = "black", size = .5),
+    legend.key = element_rect(colour = "transparent", fill = "white")
+  )+
+  # save the plot
+  ggsave(
+    file = here::here("out" , "map_points.png"),
+    width = 15,
+    height = 15,
+    units = "cm",
+    dpi = 600
+  )
+
+# Uncoment and run to see how deos the figure look like after saving
+# shell.exec(here::here("out" , "map_points.png"))
+
+```
+Interactive map with leaflet. 
+```{r}
 leaflet(df_loc) %>%
   setView(mean(df_loc$long),mean(df_loc$lat),7) %>%
   addTiles(group = "OSM (default)") %>%
@@ -371,11 +428,7 @@ leaflet(df_loc) %>%
 
 
   
-  Save geo references for the weather stations in a separate file. 
 
-```{r}
-save(df_loc, file = here::here("dat", "locations.Rdata"))
-```
 
 ```{r}
 # Total number of stations 

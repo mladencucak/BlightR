@@ -6,7 +6,7 @@ output: word_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
 ```{r pkg, warning=FALSE, message=FALSE}
@@ -16,6 +16,7 @@ library("grid")
 ```
 ## Beta function
 
+BlightR's temperature functions are base don Beta function.
 ```{r}
 
 beta_df <- data.frame(temp = c(4:28))
@@ -94,36 +95,12 @@ ggplot()+
          dpi = 820)
 
  # rm(grobc, grobr, grobTmin, grobTopt, grobTmax, temp, temp_dev, Rfact, Shape, Tmax, Tmin, Topt)
-
+pbeta
 ```
 
 ## The Model 
 
 ### Sporulation
-Ther eis a fair reason to believe that the sporlation is mostly local, and that the spore survival reduces according to power law function 
-
-The reason for not having a fixed threshold for estimation of leaf wetness using rh is the same as for having the sporulation segment in the first place. 
-Also this is a regional model. No real data on leaf wetness estimationband the analysis have shown that setting the threshold too low is bringing in question the usefulness of the model. so we will use the adapted threshold.... When the rh is above 95 at the station provides more certain reason to estimate that risk of the host plant surface is wet and susceptible to infection. 
-Use michelaidis and nestad write-up of the model
-Read the model by Israeli people
-The model is based on estimation of three segments of the life cycle: 
- - Sporulation risk  
- - Survial of inoculum and  
- - Infection risk  
- Potato late blight risk is the calculated based on cumulatiove daily estiations of risk.
-To accomodate the simplicity
-
-Sporulation is occuring and whether those spores that are produced will be dispersed in the air and we want to know if those sporangia are transported viable or are killed during transport. Solar radiation is lethal to sporangia and most that are in the air will be killed by the sunlight before they reach another location, and subsequentially, how long they might survive on foliage in that location. We do know that on sunny days they don't survive as well as they do on cloudy days so conceptually we know that the very worst conditions for dispersal ae a sunny morning so that does enhanced release becomes cloudy fairly quickly and midday and that will enhance survival of spores. Wet leaves at night are enabling germination and infection to occur during the night. These factors are put together into an algorithm which includes the amount of sporulation, the survival of this branch and the likelihood that germination will occur on the succeeding evening.This algorithm then provides a Risk estimation. 
-
-The risk of spurulation and infection is calculated as a function of temperature and relative humidity, where relative humidity is an estimator of surface wetness. The impact of temperature on sporulation and infection risk was modeled using five parameter beta function, after Yan and Hunt (1996).
-To parameterize the model, cardinal (minimum (Tmin), maximum (Tmax) and optimal (Topt)) temperatures (CT) for were extracted from the literature.  Crosier (1934) found that no sporangia was formed outside the range 3-26°C while the optimum was considered to be between 18 and 22°C. The shape factor was calculated 
-
- Rao et al. (1998) showed that LWD estimation on a maze ear was less accurate with
-weather data measured nearby weather station than near the top of the maze canopy. When
-estimated weather data are used as input data of an energy balance model, it is considerably
-difficult for energy balance models to correctly identify wetness occurrence. 
-
-
 
 ```{r import_data_harrison}
 spor_df <- read_excel(here::here("dat", "Harrison data.xlsx"))
@@ -150,7 +127,7 @@ ggplot(spor_df, aes(factor(spor_df$wind, levels = c("0.3", "1.4", "5.5", "13.7")
  spor_df <-  spor_df[spor_df$wind == 1.4 ,] %>% arrange(., rh)
 ```
   
-  *!!The rate parameter is not good here and this needs refitting*
+Modeling the relationship between relative humidity and sporualtion using logistic model. 
 
 ```{r fit_logistic}
 start_Ks <- c(110) #the population size at equilibrium
@@ -180,7 +157,7 @@ fit_data[, "rh"] <- fit_data[, "rh"] + 80
 # Change to a resizing factor, as a proportion
 fit_data[, c(".fitted", "spor")] <- lapply(fit_data[, c(".fitted", "spor")], function(x) x/max(x))
 
-#do the same stpes with the predicted data
+#do the same steps with the predicted data
 newdata <- data.frame( rhvec = seq(0, 20, 0.1))
 newdata$fit <- predict(m, newdata=data.frame( rh =newdata$rhvec ), interval =  "prediction")
 newdata$rhvec <- newdata$rhvec+80
@@ -205,7 +182,6 @@ sporulation_rh <-
     return(spor_rh_hour)
   })
 
-sporulation_rh
 
 prhspor <- 
 ggplot() +
@@ -235,7 +211,7 @@ Temperature relation to sporulation.
   
 ```{r}
 
-spor_t <- data.frame( temp = c(4:28))
+spor_t <- data.frame( temp = seq(4,28, 0.1))
 
 TminSpor <- 6
 ToptSpor <- 20
@@ -504,8 +480,6 @@ SolSurv <-
 ```
 
 ## Infection
-!!!!!!!!!!!!!!!!The Shape factor needs fixing for the sensitivity analysis. 
-! None of leaf wetness assumptions are fulfilled before the plants form a substantial haulum. 
 The surface wethess on plant surface is  an essential requirement for germination or zoospore release and for subsequent infection to take place. 
 Risk of the infection is calculated as a function of temperature and leaf wetness risk factors.  
 Temperature effect on Infection is estimated using two functions, one for the direct germinationa and one for zoospore infection. Minimum and maximum values are set equal for both functions.   
@@ -515,7 +489,7 @@ The leaf wetness is calculated using two linear functions.
 #  Check the newforge data for leaf wetness could it be used? 
 #  
 
-temp <- c(0:30)
+temp <- seq(0,30,.1)
 
 #Direct infection function
 TminInf <- 6
@@ -534,10 +508,10 @@ temp_inf_zoo <- sapply(temp, function(x) {
 
 #Direct infection function
 TminInfDir <- 6
-ToptInfDir <- 21
+ToptInfDir <- 23
 TmaxInfDir <- 26
-RfactInfDir <- 0.6 
-ShapeInfDir <-15 # parameter that determines the shape of curve
+RfactInfDir <- 0.4 
+ShapeInfDir <-.5 # parameter that determines the shape of curve
 
 
 #Function to cacluate the Infection temperature factor     
@@ -546,6 +520,7 @@ temp_inf_direct <- sapply(temp, function(x) {
     RfactInfDir * ((TmaxInfDir - x) / (TmaxInfDir - ToptInfDir) * ((x - TminInfDir) / (ToptInfDir - TminInfDir)) ^ ((ToptInfDir - TminInfDir) / (TmaxInfDir - ToptInfDir))) ^  ShapeInfDir
   Infection_temperature = ifelse(x < TminInfDir | x > TmaxInfDir, 0, Infection_temperature)
 })
+
 # Find the curve intersect
 x <- which(temp_inf_zoo==RfactInf) #peek of zoospore germiantion
 y <- which(temp_inf_direct==RfactInfDir) #peek of direct germination
@@ -590,7 +565,6 @@ ggplot() +
 ```
 
 RH factor.  
-!!!!!!!!!!!Needs further clarification and explanation expecilly why this exact figure/or just do calibration. 
 ```{r}
 RhminInf <- 86
 RhoptInf <- 95
@@ -865,7 +839,7 @@ htmlwidgets::saveWidget(p, "Infection.html")
 ## Plot functions
 Plot of functions in a single graph. 
 
-```{r}
+```{r pub_fig, fig.width=10.2, fig.height=11}
 
 plotls <- list(pbeta, psurv, psportemp , prhspor, pinftemp, pinfrh)
 
@@ -884,12 +858,13 @@ ggpubr::ggarrange(plotlist = plotls,
   ggsave(filename=here::here("scr", "model",  "fig","together.png"),
          width = 10.2, height =11, dpi = 820)
 
- shell.exec(here::here("scr", "model",  "fig","together.png"))
+ # shell.exec(here::here("scr", "model",  "fig","together.png"))
 ```
 
 
 # Geo location 
 
+Function used to calculate sunset and sunrise times for the locations of interest. 
 ```{r}
 #https://github.com/cran/HelpersMG/blob/master/R/sun.info.R
 
@@ -1011,13 +986,10 @@ params_time <- data.frame(
 write_csv(params_time, here::here("scr", "model", "par", "parameters_time.csv"))
 ```
 
+Wraper function for `SunInfo` function. 
 ```{r}
 
 GetTimes <- function(fun_df, params_time) {
-  
-  # Set the sunset and sunrise manually at 20/6
-  # fun_df[fun_df$hour == 20, "daytime"] <- "sunset"
-  # fun_df[fun_df$hour == 6, "daytime"] <- "sunrise"
   if(all(str_detect(colnames(fun_df), fixed("lon", ignore_case=TRUE)))){  stop("No Longitude reference or it is not named: 'lon'!")}
   if(all(str_detect(colnames(fun_df), fixed("lat", ignore_case=TRUE)))){  stop("No Latitude reference or it is not named: 'lat'!")}
   lat <- fun_df[, str_detect(colnames(fun_df), fixed("lat", ignore_case=TRUE))] 
@@ -1048,20 +1020,17 @@ GetTimes <- function(fun_df, params_time) {
            doy = lubridate::yday(date)) %>% 
     select(c("doy", "sunrise_hr", "sunset_hr"))
   
-  
-  
   #Retun sunset and sunrise times as a data frame
   return(tempdf)
   
 }
 ```  
 
-
-
 # Parameteres 
-We will store  all parameteres in a single file.   
+All parameteres are stored in a single file.   
 ```{r}
 all_pars <- cbind(params_inf,params_solsurv, params, params_time)
 write_csv(all_pars, here::here("scr", "model", "par", "par_default.csv"))
+all_pars
 ```
 

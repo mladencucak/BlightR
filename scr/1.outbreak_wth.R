@@ -9,6 +9,7 @@ load(here::here("dat", "weather_infilled&sol_estim.Rdata"))
 
 
 weather[is.na(weather$sol_nasa),] %>% nrow()
+weather %>% nrow()
 
 ###################################################################################
 #Outbreaks
@@ -25,26 +26,6 @@ summary(outbreaks[, c("yr", "lon", "lat")])
 outbreaks$date <- lubridate::mdy(outbreaks$date)
 str(outbreaks)
 
-library(MASS) 
-
-outbreaks %>%
-  mutate(mon = month(date),
-         day = day(date)) %>%
-  group_by(mon, day) %>%
-  unite(., date, mon, day, sep = "-") %>%
-  mutate(d = as.Date(date, format = "%m-%d")) %>%
-  ggplot(aes(d, stat(density))) +
-  geom_histogram(colour = "black",
-                 fill = "gray",
-                 binwidth = 2) +
-  geom_density() +
-  labs(y = "Frequency of outbreaks",
-       x = "Months") +
-  theme_article() +
-  ggsave(here::here("out", "fig", "Outbreaks per date.png"),
-         width = 6,
-         height = 4.5,
-         dpi = 620)
 
 
 
@@ -55,7 +36,7 @@ stations_ni <-
 stations_ie <- 
   weather %>% 
   filter(country == "IE") %>% 
-  select(stno, stna, lat, long) %>% 
+  dplyr:: select(stno, stna, lat, long) %>% 
   group_by(stno) %>% 
   summarise_all(list(unique)) %>% 
   rename(src_id = stno) %>%
@@ -63,6 +44,7 @@ stations_ie <-
   rename(Latitude = lat) %>% 
   rename(Longitude = long) 
 
+# List of all available stations with geographical reference
 stations_ni <- 
   bind_rows(stations_ni, stations_ie)
 
@@ -70,8 +52,27 @@ stations_ni <-
 
 #find nearest neighbours
 #Search for station minimum distance from the outbreak
+
+# Computes distance using Haversine formula.
+#
+# Returns the result in meters.
+haversine <- function( lat1, lon1, lat2, lon2, radius = 6371 ) {
+  # Convert decimal degrees to radians
+  lon1 = lon1 * pi / 180
+  lon2 = lon2 * pi / 180
+  lat1 = lat1 * pi / 180
+  lat2 = lat2 * pi / 180
+  
+  # Haversine formula
+  dlon = lon2 - lon1
+  dlat = lat2 - lat1
+  a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+  c = 2 * atan2(sqrt(a), sqrt(1-a))
+  
+  return( radius * c * 1000 )
+}
+
 #Add col with station name and col with distance to outbreaks
-source(here::here("scr", "lib", "DistanceFun.R"))
 distances <- vector(mode = "numeric")
 
 stations_ni$closest_1st <- NA
@@ -257,7 +258,10 @@ sapply(lss, function(x) sum(is.na(x[,c( "sol_nasa")])))%>% as.vector()
 sapply(lss, function(x) sum(is.na(x[,c( "rain")])))%>% as.vector()
 sapply(lss, nrow)%>% as.vector()
 
-
+#################################################################
+#visualisations
+#################################################################
+# Visualise the distribution of distances betwen outbreaks and weather stations
 dists <- 
   sapply(names(lss), function(x)str_split(x, pattern = "//")) %>% sapply(., "[[",4) %>% as.vector() %>% as.numeric()
 
@@ -265,33 +269,73 @@ length(dists>50)
 
 dists[dists>30]
 
-hist(dists, breaks = 120)
-sort(dists)
-
  tmp.lab <- 
   data.frame(lab1 = paste("Mean distance: ", 
                                   round(mean(dists), digits = 2), 
                                   " km",
-                                  " (IQR = ",
+                                  " \n(IQR = ",
                                   round(quantile(dists)[c(2)], digits = 2),
                           " - ",
                           round(quantile(dists)[c(4)], digits = 2),
                           ")", sep = ""))
- 
-
-  
+ p_dist <- 
+   
 ggplot()+ 
-  geom_histogram(aes(dists), bins = 40,colour = "black", fill = "gray")+
+  geom_histogram(aes(dists), 
+                 bins = max(round(dists,0)),
+                 colour = "black", 
+                 fill = "gray")+
   egg::theme_article()+
   geom_text(data = tmp.lab, x = 27, y = 33, label = tmp.lab$lab)+
-  labs(x = "The distance from source of weather data (km)",
-       y = "Number of outbreaks")+
+  labs(x = "The distance between weather stations and recorded outbreaks (km)",
+       y = "Outbreak reports")+
   ggsave(here::here("out", "fig", "Wth distances form outbreaks.png"),
          width = 13, height = 9, units = "cm")
 
+shell.exec(here::here("out", "fig", "Wth distances form outbreaks.png"))
+
+# Visualise the distribution of distances betwen outbreaks and weather stations
+library(MASS) 
+p_out <- 
+  outbreaks %>%
+  mutate(mon = month(date),
+         day = day(date)) %>%
+  group_by(mon, day) %>%
+  unite(., date, mon, day, sep = "-") %>%
+  mutate(d = as.Date(date, format = "%m-%d")) %>%
+  
+  ggplot(aes(d)) +
+  geom_histogram(colour = "black",
+                 fill = "gray",
+                 binwidth = 1) +
+  # geom_density() +
+  labs(y = "Outbreak reports",
+       x = "Date") +
+  theme_article() +
+  ggsave(here::here("out", "fig", "Outbreaks per date.png"),
+         width = 6,
+         height = 4.5,
+         dpi = 620)
 
 
-# lss_save ->lss
+  
+  
+plotls <- list(p_dist,p_out )
+ggpubr::ggarrange(plotlist = plotls, 
+                  widths = c(.3,.3),
+                  heights = c(.5,.5),
+                  labels = c("a)","b)"),
+                  nrow = 2
+                  # common.legend = TRUE,
+                  # legend = "bottom"
+                  )+
+  ggsave(filename= here::here("out", "fig", "Outbreaks&Distances.png"),
+         width = 5.1, height =7, dpi = 620)
+
+shell.exec( here::here("out", "fig", "Outbreaks&Distances.png"))
+#################################################################
+#Sort the dataset and save it for further use
+#################################################################
 data_length <- sapply(lss, function(x) nrow(x)) %>% as.numeric()
 lss[data_length == full_data] -> lss
 length(lss)
@@ -309,7 +353,7 @@ lapply(lss, function(x){
   }
                                                                                               
   )
- #dcx
+
    
  
 

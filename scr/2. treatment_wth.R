@@ -5,7 +5,7 @@ source(here::here("scr","lib",  "pkg.R"))
 
 load(here::here("dat", "weather_infilled&sol_estim.Rdata"))
 
-# Filter weather data  we will use in the treatment analysis. 
+# Filter weather data we will use in  to estimate treatment frequencies 
 
 nrow(weather)
 weather <- unite(weather, id, c("stna", "year"), remove = FALSE)

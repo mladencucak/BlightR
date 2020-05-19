@@ -103,7 +103,8 @@ TPPFun <- function(cutoff, data) {
     }
     
     fun_dff <- summarise_all(fun_df[, models], sum)
-    fun_dff[1,] <- ifelse(fun_dff[1,] >= 1, 1, 0) #if the threshold is reached change to one
+    
+    fun_dff <- apply(fun_dff, 2, function(x) ifelse(x[1] >= 1, 1, 0)) #if the threshold is reached change to one
     fun_dff$warning_thres <-  cutoff
     return(fun_dff)
   })  %>%

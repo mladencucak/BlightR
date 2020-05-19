@@ -13,12 +13,16 @@ load(file= here::here("dat", "treatment_no_estim.Rdata"))
 ###################################################################################
 # Model run function
 ###################################################################################
-source(here::here("scr", "model", "run.R"))
-source(here::here("scr", "lib", "IrishRulesModelSensitive.R"))
+source(here::here("scr", "model", "run.R")) #Load the BlightR mdoel
+source(here::here("scr", "lib", "IrishRulesModelSensitive.R")) #Loard the Irish rules model
 
 
-
-RunModel <- function(x, ir_run = FALSE, ir_def_run = FALSE, model_parameters = "default", run_type=run_type ) {
+#Wrapper function used to detemine which models to run
+RunModel <- function(x, 
+                     ir_run = FALSE, 
+                     ir_def_run = FALSE, 
+                     model_parameters = "default", 
+                     run_type=run_type ) {
   # run_type can be "model" (outbreaks ) or "wth" (for weather data)
   # eval_run will parametarise model with predetermined set of parameters
   # ir_run  determine if the Irish Rules model is to be run and attached to the data. 
@@ -86,9 +90,15 @@ load( file = here::here("out", "default", "model_outputs.Rdata"))
 
 trt_df <- do.call("rbind", default_res_ls[2][[1]])
 
+#A function to calculate the cutoff points 
 Cutoffs <- function(x){
-  quantile(drop_na(x[x>0,])%>% unlist(), probs =seq(0, 1, 0.04)) 
+  quantile(
+    x[x > 0]%>% unlist() , 
+    probs = seq(0, 1, 0.04),
+    na.rm = TRUE
+    )
 }
+
 
 warn_t_df <- 
   data.frame(warn_thresh = 1:26,

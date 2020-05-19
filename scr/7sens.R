@@ -91,10 +91,15 @@ done <-
   str_replace(".Rdata","")
 
 
+ done <- 
+done[ !grepl("ToptInfDir", done)   ]
+ done <-
+done[!grepl("RfactInfDir", done)]
+ done <-done[!grepl("ShapeInfDir", done) ]
 
-
-
-
+ dd <- c("ToptInfDir-3l","ToptInfDir-2l","ToptInfDir-1l" , "ToptInfDir0l","ToptInfDir1l", "ToptInfDir2l" )
+  par_set_run <- 
+   par_set_run[!par_set_run%in% dd]
 
 ###################################################################################
 # Run model
@@ -109,7 +114,7 @@ if(length(done)== 0){
 }
 
 for (i in par_set_run){
-  #  i <-  par_set[55]
+  #  i <-  "ToptInfDir3l"
   # x <- lss[[1]]
   # run_type <- "model"
   
@@ -222,7 +227,7 @@ clusterEvalQ(cl, library("tidyverse", quietly = TRUE, verbose = FALSE))
 lss <- list()
 
 for (i in par_set_run){
-  #  i <-  par_set_run[2]
+  #  i <-  par_set_run[1]
   # i <-  "ShapeSpor4l" 
   # x <- lss[[1]]
   # run_type <- "model"
@@ -236,8 +241,13 @@ for (i in par_set_run){
   
   trt_df <- do.call("rbind", res_lss[2][[1]])
   
+  #A function to calculate the cutoff points 
   Cutoffs <- function(x){
-    quantile(drop_na(x[x>0,])%>% unlist(), probs = seq(0, 1, 0.04)) 
+    quantile(
+      x[x > 0]%>% unlist() , 
+      probs = seq(0, 1, 0.04),
+      na.rm = TRUE
+    )
   }
   
   warn_t_df <- 
@@ -248,7 +258,7 @@ for (i in par_set_run){
                ir_risk = seq.int(1,26,1),
                defir_risk = seq.int(1,26,1)
     )
-  #Set the range ow cutoff points
+  #Set the range of cutoff points
   warning_thresholds <- warn_t_df$warn_thresh
   
   duration_of_season <- nrow(unique(res_lss[2][[1]][[1]]["doy"]))
@@ -285,6 +295,7 @@ for (i in par_set_run){
       TPPFun(x, res_lss[1][[1]])
     },
     cl = cl) %>% bind_rows()
+  
   
   
   trt_ev_ls <-

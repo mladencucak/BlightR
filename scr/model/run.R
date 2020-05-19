@@ -30,30 +30,7 @@ BlightR <- function(fun_df,
                     return_cols = NULL
                     ) 
 {
-  #' BlightR model.
-  #'
-  #' This function calculates potato late blight risk.
-  #' The risk needs to be calculated for a single location, so if the
-  #' calculation is necessary for multiple locations, data for each location needs to 
-  #' run separately. 
-  #' 
-  #' @param fun_df The weather data formated as data frame. 
-  #' @param max_na Maximum proportion of missing values. Set to 0.01 by default.  
-  #' @param infill_gap Maximum alowed gap for missing value interpolation
-  #' @param run_type Two running types determine the format of the final data frame. If it is "wth" then there will be more columns.
-  #' @param return_cols User defined veto of column names to be returned with daily the model outputs. 
-  #' @keywords potato late blight, model, decision support
 
-  #' spor sum of sporulation
-  #' inf infection 
-  #' surv_prob Spore mortailty factor
-  #' inf_sol Risk as sum of infectiona nd sporulation reduced by moratlity.
-  #' risk Risk as product of sporulation, spore survival and infection. 
-  #'  
-  #' The model will calculate the risk even if there are missing values in the data.
-  #' It will not return risk values for the day when 
-  #'  
-  
   if(is.data.frame(fun_df)==FALSE){
     stop("Weather data is not a data frame!")
   }
@@ -494,4 +471,3 @@ BlightR <- function(fun_df,
 
 
 
-  

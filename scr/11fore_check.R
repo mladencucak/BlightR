@@ -416,12 +416,17 @@ outlscat[1:20, ]
 dff[1:20, ]
 
 
+month(ymd(080101))
+month(ymd(080101), label = TRUE)
+month(ymd(080101), label = TRUE, abbr = FALSE)
+month(ymd(080101) + months(0:11), label = TRUE)
 
 
 
 
+spear_cat <- 
 outlscat %>%
-  mutate(month = month(for_date)) %>%
+  mutate(month = month(for_date, label = TRUE, abbr = FALSE)) %>%
   # select(c( day_step, model)) %>%
   # spread(set, risk_si) %>%
   group_by(month, model, day_step) %>%
@@ -436,10 +441,20 @@ outlscat %>%
     variable.name = "ind",
     value.name = "skill",
     factorsAsStrings  = FALSE
-  ) %>%
-  # mutate(day_step = factor(day_step, levels = seq(1,10,1))) %>%
-  ggplot() +
-  geom_smooth(aes(day_step, skill, color = factor(month)),
+  )
+
+# mutate(day_step = factor(day_step, levels = seq(1,10,1))) %>%
+spear_cat$month <- as.factor(as.character(spear_cat$month))
+levels(spear_cat$month) <- c("May","June","July","August","September")
+
+my_pair_lab <-
+  c("#8A0808", "#FACC2E", "#0B610B", "#F3E2A9", "#5882FA")
+names(my_pair_lab) <- levels(spear_cat$month)
+
+
+  ggplot(spear_cat) +
+  geom_smooth(aes(day_step, skill, 
+                  color = month),
               span = 0.8,
               se = FALSE,
               size = .7
@@ -452,10 +467,14 @@ outlscat %>%
     legend.title = element_text(size = 14),
     legend.key.width = unit(1, "cm")
   )+
+    # scale_color_manual(values = my_pair_lab)+
+    scale_color_brewer("Programme:", palette = "Dark2") +
   # theme(legend.position = "right") +
   facet_wrap( ~factor(model) , scales = "free") +
   scale_x_continuous(breaks = seq(1, 10, 1), labels = seq(1, 10, 1)) +
-  scale_y_continuous(limits = c(0,1))+
+  scale_y_continuous(
+    name = "Spearman correlation coefficient",
+    limits = c(0,1))+
   labs(colour = "Month",
        x = "Lead time (days)")+
   ggsave(filename = here::here("out", "fore", "fig", "month_rank_cor.png"),
