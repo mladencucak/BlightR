@@ -925,7 +925,7 @@ bind_rows(errors_daily_rh, errors_daily_temp, errors_daily_sol) %>%
   labs(
     colour = "Forecasted variable:",
     x = "Lead time (days)",
-    y = "Concordnace Correlation Coefficient"
+    y = "Concordance Correlation Coefficient"
   )+
   theme(
     text = element_text(size=12),

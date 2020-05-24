@@ -334,6 +334,14 @@ load(here::here("dat", "All_Ireland.RData"))#shape file for irish counties
 df_loc <- 
   read.csv( here::here("dat", "stations_final.csv"))
 
+df_loc$lab <- 
+  gsub("_", " (", df_loc$lab) %>% 
+  paste0(., ")")
+
+df_loc$stna <-as.character(df_loc$stna) 
+df_loc$stna <-
+  ifelse(as.character(df_loc$stna) == "JohnstownII", "Johnstown", df_loc$stna )
+
 #Convert to simple features object
 df_loc_sf <- 
   df_loc %>% 
@@ -346,18 +354,24 @@ st_crs(df_loc_sf) <-
   st_crs(all_counties.sf)
 
 basemap <- 
-ggplot() +
+  ggplot() +
   # Plot borders (shapefile)
   geom_sf(
     data = 
-      all_counties.sf,
-    color= "darkolivegreen3",
-    fill = "darkolivegreen3"
+      all_counties.sf[all_counties.sf$CountyName  != c("Tyrone","Antrim","Armagh", "Fermanagh","Londonderry","Down"),],
+    color= "#81E8C2",
+    fill = "#81E8C2"
+  ) +
+  geom_sf(
+    data = 
+      all_counties.sf[all_counties.sf$CountyName  == c("Tyrone","Antrim","Armagh", "Fermanagh","Londonderry","Down"),],
+    color= "#F6F6B2",
+    fill = "#F6F6B2"
   ) +
   #Set the theme
   theme_bw(base_family = "Roboto Condensed",
            base_size = 12 #Change the overall font size 
-           ) +
+  ) +
   #limit the plotting area
   coord_sf(xlim = c(-11.4, -4.6), ylim = c(51.2, 55.65), expand = FALSE) +
   # Define names for labs
@@ -387,15 +401,15 @@ basemap+
   ) +
   #Change the border color. This section can be removed in single color of point is ok
   scale_color_manual(name = "Data:",
-                     labels = c("Observed", "Observed&Forecast"),
+                     labels = c("Observed&\nForecast","Observed"),
                      values = c("blue", "black")) +
   #change the fill manually
   scale_fill_manual(name = "Data:",
-                    labels = c("Observed", "Observed&Forecast"),
+                    labels = c("Observed&\nForecast","Observed"),
                     values = c("blue", "black")) +
   theme(
     strip.background = element_blank(),
-    legend.position = c(.18, .91), #place position of the legend inside plotting area
+    legend.position = c(.16, .9), #place position of the legend inside plotting area
     legend.box.background = element_rect(color = "black", size = .5),
     legend.key = element_rect(colour = "transparent", fill = "white")
   )+
@@ -409,7 +423,7 @@ basemap+
   )
 
 # Uncoment and run to see how deos the figure look like after saving
-# shell.exec(here::here("out" , "map_points.png"))
+shell.exec(here::here("out" , "map_points.png"))
 
 ```
 Interactive map with leaflet. 

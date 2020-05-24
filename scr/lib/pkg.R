@@ -28,7 +28,9 @@ list.of.packages <-
     "pracma",
     "Metrics",
     "epiR",
-    "sf"
+    "sf",
+    "ggspatial",
+    "ggrepel"
   )
 
 new.packages <-

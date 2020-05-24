@@ -306,48 +306,87 @@ shell.exec(here::here("out" ))
 #Visualisation
 low_na <- 0.01
 na_prop <- 0.1
-p1 <- 
+
+ni <- 
 wth %>% 
   group_by(country, stna, year)  %>% 
    filter(country == "NI") %>% 
-  dplyr::summarize(sum_NA = round(mean(is.na(c(temp,rhum, rain))),2)) %>% 
-  # filter(stna== "St Angelo")
+  dplyr::summarize(sum_NA = round(mean(is.na(c(temp,rhum, rain))),2)) 
+
+
+ni$line_positions_y <-
+  c(uniq_stna <- seq(.5, length(unique(ni$stna)), 1),
+    rep(1.5, nrow(ni) - length(seq(
+      1.5, length(unique(ni$stna)), 1
+    ))))
+ p1 <-
+ni %>% 
   mutate(perc_missing =  ifelse(sum_NA < low_na, paste("<", low_na), paste( low_na, "-", na_prop))) %>% 
   mutate(perc_missing = factor(perc_missing)) %>% 
-  ggplot(., aes(year, stna))+
+  mutate(line_positions_x = year + .5 ) %>% 
+ggplot(., aes(year, stna))+
   geom_tile(aes(fill = perc_missing), alpha=0.5 )+
   scale_x_continuous(breaks = (seq(2000, 2018, 2)))+
-  theme_minimal()+
+  geom_vline(aes(xintercept = line_positions_x),
+             color = "darkgray",
+             size  = .2,
+             alpha = .6)+
+  geom_hline(aes(yintercept = line_positions_y),
+             color = "darkgray",
+             size  = .2,
+             alpha = .8)+
+  theme_article()+
   ggtitle("Data for the treatment evaluation")+
   labs(x = "", y="",fill = "Proportion missing:")+
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
-        legend.position = "top")
+        legend.position = "top", 
+        panel.grid = element_blank())
 
-#Visualisation
-p2 <- 
+ #Visualisation
+ie <- 
 wth %>% 
   group_by(stna, year)  %>% 
   filter(country == "IE") %>% 
-  dplyr::summarize(sum_NA = round(mean(is.na(c(temp,rhum, rain))),2)) %>% 
-  # filter(stna== "St Angelo")
+  dplyr::summarize(sum_NA = round(mean(is.na(c(temp,rhum, rain))),2))
+
+ie$line_positions_y <-
+  c(uniq_stna <- seq(1.5, length(unique(ie$stna)), 1),
+    rep(1.5, nrow(ie) - length(seq(
+      1.5, length(unique(ie$stna)), 1
+    ))))
+
+
+ p2 <- 
+ie %>% 
   mutate(perc_missing =  ifelse(sum_NA < low_na, paste("<", low_na), paste( low_na, "-", na_prop))) %>% 
   mutate(perc_missing = factor(perc_missing)) %>% 
+  mutate(line_positions_x = year + .5 ) %>% 
   ggplot(., aes(year, stna))+
   geom_tile(aes(fill = perc_missing), alpha=0.5 )+
-  scale_x_continuous(breaks = (seq(2000, 2018, 2)))+
-  theme_minimal()+
+  # scale_x_continuous(breaks = (seq(2002, 2018, 2)),
+  #                    limits = c(2003, 2018))+
+  geom_vline(aes(xintercept = line_positions_x),
+             color = "darkgray",
+             size  = .2,
+             alpha = .6)+
+  geom_hline(aes(yintercept = line_positions_y),
+             color = "darkgray",
+             # color = "black",
+             size  = .2,
+             alpha = .6)+
+  theme_bw()+
   labs(x = "Years", y="")+
-  theme(legend.position = "none")+
-  # ggtitle("Missing values for: rh and temp")+
+  theme(legend.position = "none", 
+        panel.grid = element_blank())+
   ggsave(here::here("tmp", "treatment_no_estim.png"))
 
 cowplot::plot_grid(p1,p2, ncol = 1,
                    rel_heights = c(1,1.9))+
-  ggsave(here::here("tmp", "Availability of the data for treatment eval.png"),
+  ggsave(here::here("dat", "Availability of the data for treatment eval.png"),
          width = 18, height = 18, units = "cm")
-
+rm(ni, ie)
 
 wth %>% 
   group_by(country) %>% 
